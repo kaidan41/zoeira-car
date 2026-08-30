@@ -126,10 +126,33 @@ async function callGemini(prompt, allowGrounding) {
       ? { model: MODEL_NAME, tools: [{ googleSearch: {} }] }
       : { model: MODEL_NAME },
   );
-  const result = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-  });
-  return result.response.text();
+
+  let lastErr;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      });
+      return result.response.text();
+    } catch (err) {
+      lastErr = err;
+      const status = err.status;
+      const retriable =
+        status === 429 || status === 503 || (status >= 500 && status < 600);
+      if (retriable && attempt < 5) {
+        const delay =
+          Math.min(1000 * Math.pow(2, attempt), 8000) +
+          Math.floor(Math.random() * 1000);
+        console.log(
+          `   ⏳ ${MODEL_NAME} pediu calma (HTTP ${status}); nova tentativa em ${Math.round(delay / 1000)}s...`,
+        );
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
 }
 
 async function callGeminiJson(prompt, allowGrounding) {
