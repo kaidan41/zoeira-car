@@ -48,7 +48,7 @@ if (API_KEY.length > 150 || API_KEY.includes('{')) {
   process.exit(1);
 }
 
-const MAX_ENTRIES = Number(process.env.MAX_ENTRIES || 4);
+const MAX_ENTRIES = Number(process.env.MAX_ENTRIES || 2);
 const MODEL_NAME = 'gemini-3.6-flash';
 
 let serviceAccount;
@@ -189,27 +189,61 @@ async function listCurrentVehicles() {
 }
 
 // ─────────────────────────────────────────────
-// Passo 2: selecionar alvos
+// Passo 2: selecionar alvos (rotação local — sem gastar quota do Gemini)
 // ─────────────────────────────────────────────
-async function selectTargets(current) {
-  const existing = current.map(
-    (v) => `${v.brand} ${v.model} ${v.version || ''}`.trim(),
+// Lista "programada" dos próximos carros a pesquisar (modelos populares BR
+// ainda fora do catálogo). A cada run pegamos os primeiros que ainda não
+// existem; quando a lista acabar, giramos por modelos existentes p/ revalidar.
+const TARGET_ROTATION = [
+  { brand: 'Chevrolet', model: 'Onix', version: '2ª Geração 1.0 Turbo LT', novo: true },
+  { brand: 'Chevrolet', model: 'Montana', version: 'LTZ 1.2 Turbo', novo: true },
+  { brand: 'Fiat', model: 'Argo', version: 'Drive 1.3', novo: true },
+  { brand: 'Fiat', model: 'Mobi', version: 'Like 1.0', novo: true },
+  { brand: 'Renault', model: 'Kwid', version: 'Outsider 1.0', novo: true },
+  { brand: 'Renault', model: 'Logan', version: 'Zen 1.6', novo: true },
+  { brand: 'Peugeot', model: '208', version: 'Active 1.6', novo: true },
+  { brand: 'Peugeot', model: '2008', version: 'GT 1.6', novo: true },
+  { brand: 'Citroën', model: 'C3', version: 'Feel 1.6', novo: true },
+  { brand: 'Citroën', model: 'C4 Cactus', version: 'Feel 1.6', novo: true },
+  { brand: 'Volkswagen', model: 'Polo', version: 'Highline 1.6 MSI', novo: true },
+  { brand: 'Volkswagen', model: 'Jetta', version: 'GLI 2.0 TSI', novo: true },
+  { brand: 'Ford', model: 'Ka', version: 'SEL 1.5', novo: true },
+  { brand: 'Ford', model: 'EcoSport', version: 'Freestyle 1.5', novo: true },
+  { brand: 'Chevrolet', model: 'Spin', version: 'Premier 1.8', novo: true },
+  { brand: 'Toyota', model: 'Yaris', version: 'XL 1.5', novo: true },
+  { brand: 'Toyota', model: 'Corolla Cross', version: 'XRV 2.0', novo: true },
+  { brand: 'Honda', model: 'City', version: 'EXL 1.5', novo: true },
+  { brand: 'Hyundai', model: 'HB20S', version: 'Platinum 1.6', novo: true },
+  { brand: 'Hyundai', model: 'Creta', version: 'Prestige 2.0', novo: true },
+  { brand: 'Nissan', model: 'Kicks', version: 'Advance 1.6', novo: false },
+  { brand: 'Jeep', model: 'Compass', version: 'Limited 2.0 Diesel', novo: false },
+  { brand: 'Fiat', model: 'Toro', version: 'Freedom 1.3 Turbo', novo: false },
+  { brand: 'Volkswagen', model: 'Nivus', version: 'Highline 1.0 TSI', novo: false },
+];
+
+async function selectTargets(current, processedThisRun) {
+  const exists = new Set(
+    current.map((v) => generateSlug(v.brand, v.model, v.version || '')),
   );
-  const prompt = `
-Você é o curador de dados do app Zoeira Car (mercado brasileiro de carros usados).
-O catálogo atual tem estes veículos:
-${existing.map((e, i) => `${i + 1}. ${e}`).join('\n')}
 
-Selecione EXATAMENTE ${MAX_ENTRIES} veículos para pesquisa, sendo:
-- até ${Math.max(2, Math.floor(MAX_ENTRIES / 2))} para REVALIDAR (escolha dentre os existentes que sejam os mais vendidos / de maior interesse no BR);
-- o restante para ADICIONAR como novidade (modelos populares de 2015-2026 ainda não listados, incluindo pelo menos 1 SUV, 1 hatch e 1 pickup/do tipo mais vendido).
+  // Primeiro os novos; depois revalidações.
+  const sorted = [
+    ...TARGET_ROTATION.filter((t) => t.novo),
+    ...TARGET_ROTATION.filter((t) => !t.novo),
+  ];
 
-Responda APENAS com JSON na forma:
-{"alvos":[{"brand":"...","model":"...","version":"...","novo":true|false}]}
-Sem texto extra.`;
-  const data = await callGeminiJson(prompt, false);
-  const targets = Array.isArray(data.alvos) ? data.alvos.slice(0, MAX_ENTRIES) : [];
-  if (targets.length === 0) throw new Error('A IA não retornou alvos.');
+  const targets = [];
+  const seen = new Set(processedThisRun);
+  for (const t of sorted) {
+    const slug = generateSlug(t.brand, t.model, t.version || '');
+    if (exists.has(slug) || seen.has(slug)) continue;
+    targets.push(t);
+    seen.add(slug);
+    if (targets.length >= MAX_ENTRIES) break;
+  }
+  if (targets.length === 0) {
+    throw new Error('Catálogo já completo para esta rodada — nenhum alvo pendente.');
+  }
   return targets;
 }
 
@@ -342,14 +376,24 @@ async function main() {
     existingMap[generateSlug(v.brand, v.model, v.version || '')] = v;
   }
 
-  console.log(`Selecionando ${MAX_ENTRIES} alvos...`);
-  const targets = await selectTargets(current);
+  console.log(`Selecionando alvos (rotação local, máx ${MAX_ENTRIES})...`);
+  const processedThisRun = new Set();
+  let targets;
+  try {
+    targets = await selectTargets(current, processedThisRun);
+  } catch (err) {
+    console.log(`\nℹ️  ${err.message}`);
+    console.log(`O catálogo já está completo para esta etapa — sem erro.`);
+    process.exit(0);
+  }
 
   let created = 0;
   let updated = 0;
   let skipped = 0;
+  let consecutiveQuotaFailures = 0;
 
   for (const t of targets) {
+    processedThisRun.add(generateSlug(t.brand, t.model, t.version || ''));
     console.log(`\n🔎 Pesquisando: ${[t.brand, t.model, t.version].filter(Boolean).join(' ')}...`);
     try {
       const raw = await callGeminiJson(
@@ -361,13 +405,25 @@ async function main() {
       if (r === 'created') created++;
       if (r === 'updated') updated++;
       if (r === 'skipped') skipped++;
+      consecutiveQuotaFailures = 0;
 
       // Respeita a quota grátis do Gemini: pausa entre carros.
       const pause = 10000 + Math.floor(Math.random() * 5000);
       console.log(`   💤 Aguardando ${Math.round(pause / 1000)}s pra economia de quota...`);
       await new Promise((res) => setTimeout(res, pause));
     } catch (err) {
-      console.warn(`  ⚠️  Falha em ${t.brand} ${t.model}: ${err.message}`);
+      const status = err.status;
+      if (status === 429 || status === 503) {
+        consecutiveQuotaFailures++;
+        console.warn(`   ⚠️  Quota demorou (HTTP ${status}) em ${t.brand} ${t.model}.`);
+        if (consecutiveQuotaFailures >= 2) {
+          console.log('\n📵 Quota diária do Gemini esgotada. O cron tentará novamente amanhã — nada foi quebrado.');
+          console.log('Dica: habilitar billing na chave (AI Studio) aumenta muito o limite.');
+          process.exit(0);
+        }
+      } else {
+        console.warn(`  ⚠️  Falha em ${t.brand} ${t.model}: ${err.message}`);
+      }
     }
   }
 
