@@ -1,0 +1,9 @@
+{
+  "name": "zoeira-car-scripts",
+  "private": true,
+  "description": "Scripts auxiliares do Zoeira Car (seed Firestore, assinatura de teste)",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "firebase-admin": "^12.7.0"
+  }
+}

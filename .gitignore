@@ -1,0 +1,44 @@
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.iml
+
+# Android
+android/key.properties
+android/app/zoeira_car.jks
+android/app/google-services.json
+android/.gradle/
+android/local.properties
+android/captures/
+
+# Firebase
+lib/firebase_options.dart
+scripts/serviceAccountKey.json
+firebase.json
+firestore.rules
+firestore.indexes.json
+.firebaserc
+
+# IDE
+.idea/
+*.ipr
+*.iws
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Node (scripts)
+scripts/node_modules/
+.env
+
+# OS
+.DS_Store
+Thumbs.db

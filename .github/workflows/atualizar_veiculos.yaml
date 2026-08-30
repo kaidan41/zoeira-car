@@ -1,0 +1,36 @@
+name: Atualizar Catalogo (Agente IA)
+
+on:
+  schedule:
+    # 09:00 UTC = 06:00 (São Paulo) — todo dia
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checar repositório
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: scripts
+        run: npm ci
+
+      - name: Rodar agente de IA (pesquisa + atualiza catálogo)
+        working-directory: scripts
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          MAX_ENTRIES: ${{ vars.MAX_ENTRIES }}
+        run: node 8_ia_atualizar_veiculos.js
