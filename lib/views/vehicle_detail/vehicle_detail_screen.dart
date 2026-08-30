@@ -101,12 +101,9 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                       onRefreshFipe: ctrl.refreshFipePrice,
                     )
                   : PaywallCard(
-                      hasFreeConsultToday: subCtrl.hasFreeConsultToday,
-                      isFreeUnlocking: subCtrl.isFreeUnlocking,
                       isCreditUnlocking: subCtrl.isCreditUnlocking,
                       isConsultaPurchasing: subCtrl.isConsultaPurchasing,
                       credits: subCtrl.credits,
-                      onUseFree: () => _useFreeConsult(subCtrl, vehicle),
                       onUnlockSingle: () => _unlockSingle(subCtrl, vehicle),
                       onSubscribe: () =>
                           context.push(AppRoutes.subscription),
@@ -117,19 +114,6 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
           ],
         );
       },
-    );
-  }
-
-  Future<void> _useFreeConsult(
-      SubscriptionController sub, VehicleModel vehicle) async {
-    final ok = await sub.useFreeConsult(vehicle.id);
-    if (!mounted) return;
-    _showSnack(
-      context,
-      ok
-          ? 'Nave desbloqueada com a consulta grátis! 🚀'
-          : sub.errorMessage ?? 'Não foi possível usar a consulta grátis.',
-      ok,
     );
   }
 

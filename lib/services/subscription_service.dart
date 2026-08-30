@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -63,19 +64,25 @@ class SubscriptionService {
             : SubscriptionModel.empty(user.uid));
   }
 
-  /// Salva/atualiza a assinatura no Firestore
-  Future<void> saveSubscription(SubscriptionModel sub) async {
-    await _firestore
-        .collection(_collection)
-        .doc(sub.userId)
-        .set(sub.toFirestore(), SetOptions(merge: true));
+  /// Revalida o acesso com a Cloud Function (source of truth = Google Play)
+  /// e atualiza o Firestore quando necessário. Usado no start e no restore.
+  Future<void> refreshEntitlements() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    try {
+      await FirebaseFunctions.instance
+          .httpsCallable('verifyEntitlements')
+          .call();
+    } catch (_) {
+      // Refresh é best-effort: falhas não derrubam o app.
+    }
   }
 
   // ─────────────────────────────────────────────
-  // FIRESTORE — acesso a consultas (avulsa / grátis diária)
+  // FIRESTORE — acesso a consultas (avulsa)
   // ─────────────────────────────────────────────
 
-  /// Retorna o nível de acesso do usuário logado (créditos, desbloqueios, grátis diária)
+  /// Retorna o nível de acesso do usuário logado (créditos, desbloqueios)
   Future<UserAccessModel> getUserAccess() async {
     final user = _auth.currentUser;
     if (user == null) return UserAccessModel.empty;
@@ -103,7 +110,9 @@ class SubscriptionService {
   }
 
   /// Gasta 1 crédito de consulta avulsa para desbloquear um veículo para sempre.
-  /// Retorna `true` se o desbloqueio aconteceu, `false` se não há créditos.
+  /// A transação roda na Cloud Function `unlockVehicle` (fonte da verdade no
+  /// servidor, não confiável no cliente). Retorna `true` se desbloqueou,
+  /// `false` se não há créditos.
   /// Lança exceção se o usuário não estiver logado.
   Future<bool> spendCreditOnVehicle(String vehicleId) async {
     final user = _auth.currentUser;
@@ -112,67 +121,15 @@ class SubscriptionService {
       message: 'Faça login para desbloquear a nave.',
     );
 
-    final docRef = _firestore.collection(_usersCollection).doc(user.uid);
-
     try {
-      final unlocked = await _firestore.runTransaction((tx) async {
-        final doc = await tx.get(docRef);
-        final access = doc.exists
-            ? UserAccessModel.fromFirestore(doc.data() as Map<String, dynamic>)
-            : UserAccessModel.empty;
-
-        if (access.consultaCredits < 1) return false;
-        if (access.isUnlocked(vehicleId)) return true;
-
-        final updated = access.copyWith(
-          consultaCredits: access.consultaCredits - 1,
-          unlockedVehicleIds: [...access.unlockedVehicleIds, vehicleId],
-        );
-        tx.set(docRef, updated.toFirestore(), SetOptions(merge: true));
-        return true;
-      });
-      return unlocked;
-    } on FirebaseException {
-      return false;
-    }
-  }
-
-  /// Usa a consulta grátis de hoje para desbloquear um veículo.
-  /// Retorna `true` se desbloqueou, `false` se a grátis de hoje já foi usada.
-  Future<bool> useFreeConsultOnVehicle(String vehicleId) async {
-    final user = _auth.currentUser;
-    if (user == null) throw FirebaseAuthException(
-      code: 'no-user',
-      message: 'Faça login para usar a consulta grátis.',
-    );
-
-    final docRef = _firestore.collection(_usersCollection).doc(user.uid);
-    final now = DateTime.now();
-    final month = now.month.toString().padLeft(2, '0');
-    final day = now.day.toString().padLeft(2, '0');
-    final todayKey = '${now.year}-$month-$day';
-
-    try {
-      final unlocked = await _firestore.runTransaction((tx) async {
-        final doc = await tx.get(docRef);
-        final access = doc.exists
-            ? UserAccessModel.fromFirestore(doc.data() as Map<String, dynamic>)
-            : UserAccessModel.empty;
-
-        if (access.lastFreeDate == todayKey) return false;
-        if (access.isUnlocked(vehicleId)) return true;
-
-        final updated = access.copyWith(
-          lastFreeDate: todayKey,
-          lastFreeVehicleId: vehicleId,
-          unlockedVehicleIds: [...access.unlockedVehicleIds, vehicleId],
-        );
-        tx.set(docRef, updated.toFirestore(), SetOptions(merge: true));
-        return true;
-      });
-      return unlocked;
-    } on FirebaseException {
-      return false;
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('unlockVehicle')
+          .call({'vehicleId': vehicleId});
+      final data = result.data as Map<String, dynamic>;
+      return data['unlocked'] == true;
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'failed-precondition') return false; // sem créditos
+      rethrow;
     }
   }
 
@@ -268,12 +225,30 @@ class SubscriptionService {
     switch (purchase.status) {
       case PurchaseStatus.purchased:
       case PurchaseStatus.restored:
-        // Identifica o tipo de produto e entrega o acesso
-        await _deliverPurchase(purchase);
-        await onSuccess(purchase);
-        // Confirma a entrega para o Google Play
-        if (purchase.pendingCompletePurchase) {
-          await _iap.completePurchase(purchase);
+        // Entrega o acesso validando o recibo na Cloud Function
+        try {
+          await _deliverPurchase(purchase);
+          if (purchase.pendingCompletePurchase) {
+            await _iap.completePurchase(purchase);
+          }
+          await onSuccess(purchase);
+        } on FirebaseFunctionsException catch (e) {
+          if (e.code == 'failed-precondition') {
+            // Pagamento pendente: não confirma, a Play reentrega ao concluir
+            onError(e.message ?? 'Pagamento pendente na Play Store.');
+            return;
+          }
+          onError(e.code == 'unauthenticated'
+              ? 'Faça login para validar a compra.'
+              : e.message ?? 'Falha ao validar a compra na Play Store.');
+          if (purchase.pendingCompletePurchase) {
+            await _iap.completePurchase(purchase);
+          }
+        } catch (e) {
+          onError('Falha ao confirmar a compra: $e');
+          if (purchase.pendingCompletePurchase) {
+            await _iap.completePurchase(purchase);
+          }
         }
         break;
 
@@ -294,52 +269,22 @@ class SubscriptionService {
     }
   }
 
-  /// Entrega o acesso de acordo com o produto comprado:
-  /// consulta avulsa vira crédito, assinatura vira assinatura ativa.
+  /// Envia o recibo da compra para a Cloud Function `completePurchase`,
+  /// que valida o token na API do Google Play e concede o acesso no
+  /// Firestore (assinatura vigente ou +1 crédito de consulta).
   Future<void> _deliverPurchase(PurchaseDetails purchase) async {
-    if (purchase.productID == ConsultationPlan.productId) {
-      await _deliverConsultaCredit(purchase);
+    final token = purchase.verificationData.serverVerificationData;
+    if (token.isEmpty) {
+      debugPrint(
+          'Compra sem token de verificação — não dá pra validar no servidor.');
       return;
     }
-    await _deliverSubscription(purchase);
-  }
-
-  /// Adiciona 1 crédito de consulta avulsa ao usuário
-  Future<void> _deliverConsultaCredit(PurchaseDetails purchase) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    final docRef = _firestore.collection(_usersCollection).doc(user.uid);
-    await docRef.set(
-      {
-        'consulta_credits': FieldValue.increment(1),
-        'last_product_id': purchase.productID,
-        'last_purchase_at': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    );
-  }
-
-  /// Registra a assinatura no Firestore após compra confirmada
-  Future<void> _deliverSubscription(PurchaseDetails purchase) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    final now = DateTime.now();
-    // Assinatura mensal: validade de 31 dias (Google Play valida no server-side)
-    final expiry = now.add(const Duration(days: 31));
-
-    final sub = SubscriptionModel(
-      userId: user.uid,
-      status: SubscriptionStatus.active,
-      purchaseToken: purchase.verificationData.serverVerificationData,
-      productId: purchase.productID,
-      startDate: now,
-      expiryDate: expiry,
-      autoRenewing: true,
-    );
-
-    await saveSubscription(sub);
+    await FirebaseFunctions.instance
+        .httpsCallable('completePurchase')
+        .call({
+      'productId': purchase.productID,
+      'purchaseToken': token,
+    });
   }
 
   /// Cancela o listener de compras

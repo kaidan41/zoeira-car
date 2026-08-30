@@ -30,13 +30,14 @@ class FreeSection extends StatelessWidget {
           const SizedBox(height: 6),
 
           // ── Anos + faixa de preço ──
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _InfoChip(
                 icon: Icons.calendar_today_rounded,
                 label: vehicle.yearsFormatted,
               ),
-              const SizedBox(width: 8),
               _InfoChip(
                 icon: Icons.attach_money_rounded,
                 label: vehicle.priceRange,

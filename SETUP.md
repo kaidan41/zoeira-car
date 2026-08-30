@@ -75,11 +75,53 @@ ativa a **YouTube Data API v3** e preenche `youtubeApiKey`.
 ### 3.2 Modelo
 - **Assinatura R$ 9,90/mês**: acesso ilimitado a todos os veículos.
 - **Consulta avulsa R$ 5,00**: desbloqueia 1 veículo para sempre.
-- **1 consulta grátis por dia**: um veículo aleatório por dia ficam abertos.
+- Todos os desbloqueios são **validados no servidor** (Cloud Functions + API do
+  Google Play). O app NÃO escreve mais em `subscriptions`/`users` — só lê.
 
 ### 3.3 Testar compras
 - Adicione contas de teste em Play Console → Configuração → Testadores
 - Use o ambiente de sandbox para testar sem cobrar
+
+### 3.4 Validação no servidor (Cloud Functions)
+O cliente envia o **token da compra** para as funções, que validam na
+API do Google Play (Android Publisher v3) e só então concedem o acesso.
+Sem isso, qualquer pessoa poderia gravar "assinante: true" no Firestore.
+
+Pré-requisito: **plano Blaze** no Firebase (Functions exige pay-as-you-go).
+
+1. Instalar dependências:
+   ```bash
+   cd functions
+   npm install
+   ```
+2. **Service account com acesso à Google Play**:
+   - Play Console → Configuração → Acesso à API → vincular sua conta Google Cloud.
+   - No Google Cloud Console crie a service account e baixe a **chave JSON**.
+     (Ou adicione a service account padrão `zoeira-car@appspot.gserviceaccount.com`
+     ao Play Console → Acesso à API — aí não precisa de secret.)
+3. Se usou chave própria, guarde o JSON num secret do Firebase:
+   ```bash
+   firebase functions:secrets:set PLAY_SERVICE_ACCOUNT_JSON
+   ```
+   (cole o conteúdo do JSON) → confirmar e **acessar** a versão gerada.
+4. Deploy:
+   ```bash
+   firebase deploy --only functions
+   ```
+5. **Regras novas** (`firestore.rules`): publicar no console — `subscriptions` e
+   `users` ficam com **escrita bloqueada** (só o servidor grava).
+
+Funções criadas:
+- `completePurchase` — valida o token (assinatura ou consulta avulsa) e concede o acesso.
+- `unlockVehicle` — transação no servidor: gasta 1 crédito (ou libera se houver assinatura).
+- `verifyEntitlements` — revalida o token atual com a Play (start/restore), com cache de 6h.
+- `playDeveloperNotification` — *(opcional)* webhook de renovações/cancelamentos.
+
+**RTDN (opcional, recomendado):** renovações e cancelamentos chegam sozinhos:
+1. GCP → Pub/Sub → criar tópico e assinatura **Push** apontando para
+   `https://us-central1-<projeto>.cloudfunctions.net/playDeveloperNotification`.
+2. Play Console → Monetização → Configuração de assinaturas →
+   **Notificações do desenvolvedor** → marcar/selecionar o tópico Pub/Sub.
 
 ---
 
@@ -143,13 +185,26 @@ vehicles/{vehicleId}
 ### `users/{userId}`
 ```
 users/{userId}
-  unlocked_vehicle_ids: string[]  // veículos desbloqueados (avulsa paga/grátis)
+  unlocked_vehicle_ids: string[]  // veículos desbloqueados (avulsa paga)
   consulta_credits: number        // créditos de consulta avulsa comprados
-  last_free_date: string          // "yyyy-MM-dd" — dia da última consulta grátis
-  last_free_vehicle_id: string    // veículo do grátis de hoje
   last_product_id: string         // último produto comprado
   last_purchase_at: timestamp
 ```
+
+### `subscriptions/{userId}`
+```
+subscriptions/{userId}
+  status: string           // "active" | "expired" (| "trial")
+  product_id: string       // "zoeira_car_mensal"
+  purchase_token: string   // token da compra na Play Store
+  start_date: timestamp
+  expiry_date: timestamp
+  auto_renewing: boolean
+  verified_at: timestamp   // última validação com a Google Play
+  updated_at: timestamp
+```
+*Escrita só via Cloud Functions. A coleção `purchase_tokens` guarda o hash
+de cada token já processado (idempotência da consulta avulsa).*
 
 ### Alimentar a base
 ```bash
@@ -185,12 +240,14 @@ node scripts\5_popular_veiculos.js   # upsert (atualiza pelo slug, não duplica)
       para o build; é gitignored, então num clone novo ele nem existe — baixar do Firebase Console)
 - [ ] Produto `zoeira_car_mensal` com preço **R$ 9,90/mês** publicado na Play Console
 - [ ] Produto `zoeira_consulta` (R$ 5,00, consumível) publicado na Play Console
-- [ ] Regras do `firestore.rules` **publicadas** no console (inclui `users/{userId}`)
+- [ ] **Cloud Functions deployado** (`completePurchase`, `unlockVehicle`, `verifyEntitlements`)
+- [ ] Service account com acesso à Google Play configurada (via secret ou appspot)
+- [ ] Regras do `firestore.rules` **publicadas** no console (escrita só no servidor)
 - [ ] Authentication → E-mail/Senha ativo + usuário de teste com assinatura vigente
 - [ ] Ícone do app (512x512) adicionado em `android/app/src/main/res/mipmap-*/`
 - [ ] Keystore configurado em `android/app/build.gradle`
 - [ ] `google-services.json` em `android/app/`
-- [ ] Testar fluxo de compra com conta de teste (assinatura + consulta avulsa + grátis diária)
+- [ ] Testar fluxo de compra com conta de teste (assinatura + consulta avulsa + restauração)
 - [ ] Testar fluxo de login/cadastro
 - [ ] Testar busca e detalhe de veículo
 - [ ] Base de veículos populada (`node scripts\5_popular_veiculos.js`)

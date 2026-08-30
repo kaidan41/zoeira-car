@@ -23,7 +23,6 @@ class SubscriptionController extends ChangeNotifier {
   String? _errorMessage;
   String? _successMessage;
   bool _iapAvailable = false;
-  bool _freeUnlocking = false;
   bool _creditUnlocking = false;
   bool _consultaPurchasing = false;
   String? _pendingUnlockVehicleId;
@@ -39,17 +38,15 @@ class SubscriptionController extends ChangeNotifier {
 
   UserAccessModel get access => _access ?? UserAccessModel.empty;
   int get credits => access.consultaCredits;
-  bool get hasFreeConsultToday => access.hasUsedFreeConsultToday;
 
   bool get isLoading => _state == SubscriptionLoadState.loading;
   bool get isPurchasing => _state == SubscriptionLoadState.purchasing;
   bool get isRestoring => _state == SubscriptionLoadState.restoring;
   bool get isSubscriber => _subscription?.isValid ?? false;
-  bool get isFreeUnlocking => _freeUnlocking;
   bool get isCreditUnlocking => _creditUnlocking;
   bool get isConsultaPurchasing => _consultaPurchasing;
 
-  /// Esse veículo já está desbloqueado (assinatura, avulsa paga ou grátis diária)?
+  /// Esse veículo já está desbloqueado (assinatura ou avulsa paga)?
   bool isUnlocked(String vehicleId) {
     if (isSubscriber) return true;
     return access.isUnlocked(vehicleId);
@@ -65,6 +62,9 @@ class SubscriptionController extends ChangeNotifier {
 
     try {
       _iapAvailable = await _service.isAvailable();
+
+      // Revalida o acesso com o Google Play (fonte da verdade no servidor)
+      await _service.refreshEntitlements();
 
       // Carrega estado da assinatura e acesso do Firestore
       _subscription = await _service.getUserSubscription();
@@ -106,6 +106,7 @@ class SubscriptionController extends ChangeNotifier {
   /// Recarrega o estado da assinatura e do acesso (ex: ao voltar da tela de pagamento)
   Future<void> reload() async {
     try {
+      await _service.refreshEntitlements();
       _subscription = await _service.getUserSubscription();
       _access = await _service.getUserAccess();
       notifyListeners();
@@ -113,30 +114,8 @@ class SubscriptionController extends ChangeNotifier {
   }
 
   // ─────────────────────────────────────────────
-  // Consulta avulsa (R$ 5) e grátis diária
+  // Consulta avulsa (R$ 5)
   // ─────────────────────────────────────────────
-
-  /// Use a consulta grátis de hoje neste veículo.
-  Future<bool> useFreeConsult(String vehicleId) async {
-    if (hasFreeConsultToday) return false;
-
-    _freeUnlocking = true;
-    notifyListeners();
-    try {
-      final ok = await _service.useFreeConsultOnVehicle(vehicleId);
-      await reload();
-      if (ok) {
-        _successMessage = 'Consulta grátis usada! Nave desbloqueada 🚀';
-      }
-      return ok;
-    } catch (e) {
-      _setError(_friendlyError(e));
-      return false;
-    } finally {
-      _freeUnlocking = false;
-      notifyListeners();
-    }
-  }
 
   /// Desbloqueia 1 veículo por R$ 5: usa um crédito existente ou
   /// inicia a compra da consulta avulsa na Play Store.

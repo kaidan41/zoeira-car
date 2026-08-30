@@ -183,7 +183,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Dá pra desbloquear 1 nave por ${ConsultationPlan.price} e tem 1 consulta grátis por dia. Direto na tela de cada carro!',
+                  'Dá pra desbloquear 1 nave por ${ConsultationPlan.price}. Direto na tela de cada carro!',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                         height: 1.4,

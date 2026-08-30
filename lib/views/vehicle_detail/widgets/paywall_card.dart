@@ -3,25 +3,19 @@ import 'package:zoeira_car/models/subscription_model.dart';
 import 'package:zoeira_car/theme/app_colors.dart';
 
 /// Card de paywall zoeiro exibido para quem ainda não pode ver o raio-x completo.
-/// Oferece 3 caminhos: consulta grátis do dia, consulta avulsa (R$ 5) e assinatura.
+/// Oferece 2 caminhos: consulta avulsa (R$ 5) e assinatura.
 class PaywallCard extends StatelessWidget {
-  final bool hasFreeConsultToday;
-  final bool isFreeUnlocking;
   final bool isCreditUnlocking;
   final bool isConsultaPurchasing;
   final int credits;
-  final VoidCallback? onUseFree;
   final VoidCallback? onUnlockSingle;
   final VoidCallback onSubscribe;
 
   const PaywallCard({
     super.key,
-    required this.hasFreeConsultToday,
-    required this.isFreeUnlocking,
     required this.isCreditUnlocking,
     required this.isConsultaPurchasing,
     required this.credits,
-    required this.onUseFree,
     required this.onUnlockSingle,
     required this.onSubscribe,
   });
@@ -75,16 +69,7 @@ class PaywallCard extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // ── 1) Consulta grátis de hoje ──
-                  _FreeActionButton(
-                    usedToday: hasFreeConsultToday,
-                    loading: isFreeUnlocking,
-                    onTap: onUseFree,
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // ── 2) Consulta avulsa R$ 5 ──
+                  // ── 1) Consulta avulsa R$ 5 ──
                   _SingleActionButton(
                     credits: credits,
                     loading: isCreditUnlocking || isConsultaPurchasing,
@@ -93,7 +78,7 @@ class PaywallCard extends StatelessWidget {
 
                   const SizedBox(height: 22),
 
-                  // ── 3) Assinatura (destaque) ──
+                  // ── 2) Assinatura (destaque) ──
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -145,65 +130,6 @@ class PaywallCard extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-// Botão: consulta grátis diária
-// ─────────────────────────────────────────────
-
-class _FreeActionButton extends StatelessWidget {
-  final bool usedToday;
-  final bool loading;
-  final VoidCallback? onTap;
-
-  const _FreeActionButton({
-    required this.usedToday,
-    required this.loading,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: (usedToday || loading) ? null : onTap,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          side: BorderSide(
-            color: usedToday
-                ? Colors.white24
-                : AppColors.verdictGreen.withOpacity(0.6),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          disabledForegroundColor: Colors.white38,
-        ),
-        icon: loading
-            ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.verdictGreen,
-                ),
-              )
-            : const Icon(Icons.card_giftcard_rounded,
-                color: AppColors.verdictGreen, size: 18),
-        label: Text(
-          usedToday
-              ? 'Consulta grátis já usada hoje'
-              : 'Usar minha consulta grátis de hoje',
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(fontWeight: FontWeight.w600),
         ),
       ),
     );
