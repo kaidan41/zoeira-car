@@ -46,9 +46,20 @@ const MODEL_NAME = 'gemini-2.0-flash';
 let serviceAccount;
 const saFromEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
 if (saFromEnv) {
-  serviceAccount = JSON.parse(saFromEnv);
+  try {
+    serviceAccount = JSON.parse(saFromEnv);
+  } catch (e) {
+    console.error('❌ FIREBASE_SERVICE_ACCOUNT não é um JSON válido. Confira o conteúdo no secret do GitHub (repo > Settings > Secrets and variables > Actions).');
+    process.exit(1);
+  }
 } else {
-  serviceAccount = require('./serviceAccountKey.json');
+  try {
+    serviceAccount = require('./serviceAccountKey.json');
+  } catch (e) {
+    console.error('❌ Secret FIREBASE_SERVICE_ACCOUNT não definido no GitHub e arquivo serviceAccountKey.json ausente localmente.');
+    console.error('   → No GitHub: repo Settings > Secrets and variables > Actions > New repository secret > Name: FIREBASE_SERVICE_ACCOUNT > cole o conteúdo do scripts/serviceAccountKey.json.');
+    process.exit(1);
+  }
 }
 
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });

@@ -29,6 +29,14 @@ jobs:
         working-directory: scripts
         run: npm ci
 
+      - name: Verificar secrets configurados
+        env:
+          IA_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          test -n "$IA_KEY"  || { echo "❌ Faltando secret: GEMINI_API_KEY"; exit 1; }
+          test -n "$SA_KEY"  || { echo "❌ Faltando secret: FIREBASE_SERVICE_ACCOUNT"; exit 1; }
+
       - name: Rodar agente de IA (pesquisa + atualiza catálogo)
         working-directory: scripts
         env:
