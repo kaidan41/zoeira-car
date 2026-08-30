@@ -34,7 +34,7 @@ const admin = require('firebase-admin');
 // ─────────────────────────────────────────────
 // Configuração
 // ─────────────────────────────────────────────
-const API_KEY = process.env.GEMINI_API_KEY;
+const API_KEY = String(process.env.GEMINI_API_KEY || '').trim();
 if (!API_KEY) {
   console.error('❌ Falta GEMINI_API_KEY no ambiente.');
   process.exit(1);
