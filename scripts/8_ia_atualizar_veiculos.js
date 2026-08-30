@@ -48,7 +48,7 @@ if (API_KEY.length > 150 || API_KEY.includes('{')) {
   process.exit(1);
 }
 
-const MAX_ENTRIES = Number(process.env.MAX_ENTRIES || 8);
+const MAX_ENTRIES = Number(process.env.MAX_ENTRIES || 4);
 const MODEL_NAME = 'gemini-3.6-flash';
 
 let serviceAccount;
@@ -225,7 +225,8 @@ REGRAS OBRIGATÓRIAS:
 1. Vendas/confiabilidade: cada informação deve vir de fonte confiável (imprensa automotiva como Quatro Rodas, Autoesporte, Motor1, Jornal do Carro; ou montadora). Cite SEMPRE a fonte real com URL em "sources".
 2. Problemas crônicos: SÓ liste o que estiver documentado em fonte confiável. Se não achar nada relevante, escreva: "Sem problemas crônicos documentados em fontes confiáveis." Não invente.
 3. Recalls: inclua apenas se houver recall oficial (gov.br/Consumidor ou site da montadora) com a URL.
-4. FIPE/preço: price_range em reais aproximado do mercado de usados (posicione pelo ano médio da versão). fipe_code deixe vazio a menos que você tenha o código exato da Tabela FIPE.
+3b. Especificações técnicas e faixa de preço/FIPE: pode usar base de dados automotiva BR como Carweb (carweb.com.br) — é boa referência de valores e fichas — além da imprensa. fipe_code deixe vazio a menos que tenha o código exato da Tabela FIPE.
+4. FIPE/preço: price_range em reais aproximado do mercado de usados (posicione pelo ano médio da versão), usando Carweb/imprensa como referência.
 5. verdict: apenas um destes → "recommended" (recomendo comprar), "ok_if_cheap" (só se estiver barato), "avoid" (evite).
 6. body_type: apenas → "hatch" | "sedan" | "suv" | "pickup" | "classic".
 7. Meios técnicos: technical_specs em texto com linhas "Motor:...", "Potência:...", "Cambio:...", "Distribuição:" (mencione "CORREIA BANHADA A ÓLEO" se for o caso).
@@ -360,6 +361,11 @@ async function main() {
       if (r === 'created') created++;
       if (r === 'updated') updated++;
       if (r === 'skipped') skipped++;
+
+      // Respeita a quota grátis do Gemini: pausa entre carros.
+      const pause = 10000 + Math.floor(Math.random() * 5000);
+      console.log(`   💤 Aguardando ${Math.round(pause / 1000)}s pra economia de quota...`);
+      await new Promise((res) => setTimeout(res, pause));
     } catch (err) {
       console.warn(`  ⚠️  Falha em ${t.brand} ${t.model}: ${err.message}`);
     }
