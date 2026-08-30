@@ -49,7 +49,7 @@ if (API_KEY.length > 150 || API_KEY.includes('{')) {
 }
 
 const MAX_ENTRIES = Number(process.env.MAX_ENTRIES || 8);
-const MODEL_NAME = 'gemini-2.0-flash';
+const MODEL_NAME = 'gemini-3.6-flash';
 
 let serviceAccount;
 const saFromEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
