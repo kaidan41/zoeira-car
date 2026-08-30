@@ -34,9 +34,17 @@ const admin = require('firebase-admin');
 // ─────────────────────────────────────────────
 // Configuração
 // ─────────────────────────────────────────────
-const API_KEY = String(process.env.GEMINI_API_KEY || '').trim();
+const rawKey = String(process.env.GEMINI_API_KEY || '');
+// Remove qualquer espaço/quebra de linha (acidentes de cópia/cola).
+const API_KEY = rawKey.replace(/\s+/g, '');
+console.log(`Chave API: ${rawKey.length} chars recebidos → ${API_KEY.length} chars limpos.`);
 if (!API_KEY) {
   console.error('❌ Falta GEMINI_API_KEY no ambiente.');
+  process.exit(1);
+}
+if (API_KEY.length > 150 || API_KEY.includes('{')) {
+  console.error('❌ GEMINI_API_KEY não parece ser uma chave do Gemini (valor muito longo ou contém JSON).');
+  console.error('   Confira o secret no GitHub: repo > Settings > Secrets and variables > Actions > GEMINI_API_KEY deve conter SÓ a chave (ex.: AIza...), uma linha.');
   process.exit(1);
 }
 
