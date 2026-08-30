@@ -1,6 +1,8 @@
 name: Atualizar Catalogo (Agente IA)
 
 on:
+  push:
+    branches: [main]
   schedule:
     # 09:00 UTC = 06:00 (São Paulo) — todo dia
     - cron: '0 9 * * *'
