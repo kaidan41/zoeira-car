@@ -46,6 +46,8 @@ class VehicleDetailController extends ChangeNotifier {
       } else {
         _vehicle = vehicle;
         _state = DetailLoadState.loaded;
+        // Conta para "mais buscados" no banner da Home
+        _vehicleService.incrementViews(vehicleId);
       }
     } catch (e) {
       _state = DetailLoadState.error;

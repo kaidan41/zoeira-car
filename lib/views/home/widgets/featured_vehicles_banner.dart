@@ -35,9 +35,21 @@ class FeaturedVehiclesBanner extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: vehicles.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, index) => _VehicleChip(
-              vehicle: vehicles[index],
-              onTap: () => onVehicleTap(vehicles[index].id),
+            itemBuilder: (context, index) => TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: Duration(milliseconds: 280 + index * 45),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) => Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(12 * (1 - value), 0),
+                  child: child,
+                ),
+              ),
+              child: _VehicleChip(
+                vehicle: vehicles[index],
+                onTap: () => onVehicleTap(vehicles[index].id),
+              ),
             ),
           ),
         ),

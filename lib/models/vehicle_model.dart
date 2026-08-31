@@ -80,6 +80,9 @@ class VehicleModel {
   final double? fipePrice; // Preço FIPE atualizado
   final DateTime? fipeUpdatedAt;
 
+  // Métricas
+  final int views;
+
   // Metadados
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -103,6 +106,7 @@ class VehicleModel {
     this.fipeCode,
     this.fipePrice,
     this.fipeUpdatedAt,
+    this.views = 0,
     this.createdAt,
     this.updatedAt,
   });
@@ -136,6 +140,7 @@ class VehicleModel {
       fipeCode: data['fipe_code'],
       fipePrice: (data['fipe_price'] as num?)?.toDouble(),
       fipeUpdatedAt: (data['fipe_updated_at'] as Timestamp?)?.toDate(),
+      views: (data['views'] as num?)?.toInt() ?? 0,
       createdAt: (data['created_at'] as Timestamp?)?.toDate(),
       updatedAt: (data['updated_at'] as Timestamp?)?.toDate(),
     );
@@ -200,6 +205,7 @@ class VehicleModel {
     String? fipeCode,
     double? fipePrice,
     DateTime? fipeUpdatedAt,
+    int? views,
   }) {
     return VehicleModel(
       id: id ?? this.id,
@@ -220,6 +226,7 @@ class VehicleModel {
       fipeCode: fipeCode ?? this.fipeCode,
       fipePrice: fipePrice ?? this.fipePrice,
       fipeUpdatedAt: fipeUpdatedAt ?? this.fipeUpdatedAt,
+      views: views ?? this.views,
     );
   }
 }

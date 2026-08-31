@@ -60,8 +60,26 @@ class VehicleService {
     return VehicleModel.fromFirestore(doc);
   }
 
-  /// Busca os veículos em destaque (featured == true)
+  /// Busca os veículos em destaque: os mais buscados (mais views).
+  /// Fallback para `featured == true` se ainda não houver views.
   Future<List<VehicleModel>> getFeaturedVehicles({int limit = 6}) async {
+    try {
+      final mostViewed = await _firestore
+          .collection(_collection)
+          .orderBy('views', descending: true)
+          .limit(limit)
+          .get();
+
+      final hasViews = mostViewed.docs.any((d) => (d.data()['views'] ?? 0) > 0);
+      if (hasViews) {
+        return mostViewed.docs
+            .map((doc) => VehicleModel.fromFirestore(doc))
+            .toList();
+      }
+    } catch (_) {
+      // views ainda sem índice ou sem dados — cai no fallback
+    }
+
     final snapshot = await _firestore
         .collection(_collection)
         .where('featured', isEqualTo: true)
@@ -71,6 +89,17 @@ class VehicleService {
     return snapshot.docs
         .map((doc) => VehicleModel.fromFirestore(doc))
         .toList();
+  }
+
+  /// Incrementa o contador de visualizações (usado para "mais buscados")
+  Future<void> incrementViews(String vehicleId) async {
+    try {
+      await _firestore.collection(_collection).doc(vehicleId).update({
+        'views': FieldValue.increment(1),
+      });
+    } catch (_) {
+      // documento pode não existir ou offline — ignora
+    }
   }
 
   /// Stream para atualizações em tempo real de um veículo

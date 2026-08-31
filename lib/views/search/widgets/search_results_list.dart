@@ -20,9 +20,21 @@ class SearchResultsList extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       itemCount: results.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) => _VehicleResultCard(
-        vehicle: results[index],
-        onTap: () => onVehicleTap(results[index].id),
+      itemBuilder: (context, index) => TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: Duration(milliseconds: 220 + index * 35),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) => Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 10 * (1 - value)),
+            child: child,
+          ),
+        ),
+        child: _VehicleResultCard(
+          vehicle: results[index],
+          onTap: () => onVehicleTap(results[index].id),
+        ),
       ),
     );
   }
@@ -58,17 +70,20 @@ class _VehicleResultCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // ── Illustration ──
-            ClipRRect(
-              borderRadius: const BorderRadius.horizontal(
-                left: Radius.circular(14),
-              ),
-              child: SizedBox(
-                width: 100,
-                height: 100,
-                child: VehicleIllustration(
-                  brand: vehicle.brand,
-                  bodyType: vehicle.bodyType,
+            // ── Illustration (Hero leve) ──
+            Hero(
+              tag: 'vehicle-${vehicle.id}',
+              child: ClipRRect(
+                borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(14),
+                ),
+                child: SizedBox(
+                  width: 100,
+                  height: 100,
+                  child: VehicleIllustration(
+                    brand: vehicle.brand,
+                    bodyType: vehicle.bodyType,
+                  ),
                 ),
               ),
             ),

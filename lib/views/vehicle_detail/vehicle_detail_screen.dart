@@ -164,10 +164,13 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
         background: Stack(
           fit: StackFit.expand,
           children: [
-            // Illustration da marca (sem foto, sem direitos autorais)
-            VehicleIllustration(
-              brand: vehicle.brand,
-              bodyType: vehicle.bodyType,
+            // Illustration da marca (Hero leve do card)
+            Hero(
+              tag: 'vehicle-${vehicle.id}',
+              child: VehicleIllustration(
+                brand: vehicle.brand,
+                bodyType: vehicle.bodyType,
+              ),
             ),
             // Gradiente de baixo para cima
             const DecoratedBox(
