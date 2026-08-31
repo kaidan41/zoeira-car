@@ -1,13 +1,25 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:zoeira_car/models/subscription_model.dart';
 import 'package:zoeira_car/models/user_access_model.dart';
+import 'package:zoeira_car/utils/app_constants.dart';
+
+/// Erro devolvido pelo Worker de validação de pagamentos.
+class WorkerException implements Exception {
+  final String code;
+  final String message;
+  const WorkerException({required this.code, required this.message});
+
+  @override
+  String toString() => message;
+}
 
 class SubscriptionService {
   final FirebaseFirestore _firestore;
@@ -28,7 +40,48 @@ class SubscriptionService {
         _iap = iap ?? InAppPurchase.instance;
 
   // ─────────────────────────────────────────────
-  // FIRESTORE — estado da assinatura
+  // WORKER — chamadas HTTP de validação
+  // ─────────────────────────────────────────────
+
+  /// Chama o Worker de billing com o ID token do Firebase no header.
+  Future<Map<String, dynamic>> _callWorker(
+    String path,
+    Map<String, dynamic> body, {
+    bool needsAuth = true,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null && needsAuth) {
+      throw const WorkerException(
+        code: 'no-user',
+        message: 'Faça login para continuar.',
+      );
+    }
+
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+    };
+    if (needsAuth) {
+      headers['Authorization'] = 'Bearer ${await user!.getIdToken(true)}';
+    }
+
+    final res = await http.post(
+      Uri.parse('${AppConstants.billingWorkerUrl}$path'),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    if (data['ok'] != true) {
+      throw WorkerException(
+        code: data['code'] as String? ?? 'error',
+        message: data['message'] as String? ?? 'Falha na validação.',
+      );
+    }
+    return data;
+  }
+
+  // ─────────────────────────────────────────────
+  // FIRESTORE — estado da assinatura (somente leitura)
   // ─────────────────────────────────────────────
 
   /// Retorna o estado atual da assinatura do usuário logado
@@ -64,22 +117,20 @@ class SubscriptionService {
             : SubscriptionModel.empty(user.uid));
   }
 
-  /// Revalida o acesso com a Cloud Function (source of truth = Google Play)
-  /// e atualiza o Firestore quando necessário. Usado no start e no restore.
+  /// Revalida o acesso com o Worker (source of truth = Google Play) e
+  /// atualiza o Firestore quando necessário. Usado no start e no restore.
   Future<void> refreshEntitlements() async {
     final user = _auth.currentUser;
     if (user == null) return;
     try {
-      await FirebaseFunctions.instance
-          .httpsCallable('verifyEntitlements')
-          .call();
+      await _callWorker('/verify', const {});
     } catch (_) {
       // Refresh é best-effort: falhas não derrubam o app.
     }
   }
 
   // ─────────────────────────────────────────────
-  // FIRESTORE — acesso a consultas (avulsa)
+  // FIRESTORE — acesso a consultas (somente leitura)
   // ─────────────────────────────────────────────
 
   /// Retorna o nível de acesso do usuário logado (créditos, desbloqueios)
@@ -110,27 +161,14 @@ class SubscriptionService {
   }
 
   /// Gasta 1 crédito de consulta avulsa para desbloquear um veículo para sempre.
-  /// A transação roda na Cloud Function `unlockVehicle` (fonte da verdade no
+  /// A transação roda no Worker `unlockVehicle` (fonte da verdade no
   /// servidor, não confiável no cliente). Retorna `true` se desbloqueou,
   /// `false` se não há créditos.
   /// Lança exceção se o usuário não estiver logado.
   Future<bool> spendCreditOnVehicle(String vehicleId) async {
-    final user = _auth.currentUser;
-    if (user == null) throw FirebaseAuthException(
-      code: 'no-user',
-      message: 'Faça login para desbloquear a nave.',
-    );
-
-    try {
-      final result = await FirebaseFunctions.instance
-          .httpsCallable('unlockVehicle')
-          .call({'vehicleId': vehicleId});
-      final data = result.data as Map<String, dynamic>;
-      return data['unlocked'] == true;
-    } on FirebaseFunctionsException catch (e) {
-      if (e.code == 'failed-precondition') return false; // sem créditos
-      rethrow;
-    }
+    final result =
+        await _callWorker('/unlock', {'vehicleId': vehicleId});
+    return result['unlocked'] == true;
   }
 
   // ─────────────────────────────────────────────
@@ -225,22 +263,22 @@ class SubscriptionService {
     switch (purchase.status) {
       case PurchaseStatus.purchased:
       case PurchaseStatus.restored:
-        // Entrega o acesso validando o recibo na Cloud Function
+        // Entrega o acesso validando o recibo no Worker
         try {
           await _deliverPurchase(purchase);
           if (purchase.pendingCompletePurchase) {
             await _iap.completePurchase(purchase);
           }
           await onSuccess(purchase);
-        } on FirebaseFunctionsException catch (e) {
-          if (e.code == 'failed-precondition') {
+        } on WorkerException catch (e) {
+          if (e.code == 'pending') {
             // Pagamento pendente: não confirma, a Play reentrega ao concluir
-            onError(e.message ?? 'Pagamento pendente na Play Store.');
+            onError(e.message);
             return;
           }
           onError(e.code == 'unauthenticated'
               ? 'Faça login para validar a compra.'
-              : e.message ?? 'Falha ao validar a compra na Play Store.');
+              : e.message);
           if (purchase.pendingCompletePurchase) {
             await _iap.completePurchase(purchase);
           }
@@ -269,9 +307,9 @@ class SubscriptionService {
     }
   }
 
-  /// Envia o recibo da compra para a Cloud Function `completePurchase`,
-  /// que valida o token na API do Google Play e concede o acesso no
-  /// Firestore (assinatura vigente ou +1 crédito de consulta).
+  /// Envia o recibo da compra para o Worker `completePurchase`, que valida
+  /// o token na API do Google Play e concede o acesso no Firestore
+  /// (assinatura vigente ou +1 crédito de consulta).
   Future<void> _deliverPurchase(PurchaseDetails purchase) async {
     final token = purchase.verificationData.serverVerificationData;
     if (token.isEmpty) {
@@ -279,9 +317,7 @@ class SubscriptionService {
           'Compra sem token de verificação — não dá pra validar no servidor.');
       return;
     }
-    await FirebaseFunctions.instance
-        .httpsCallable('completePurchase')
-        .call({
+    await _callWorker('/purchase', {
       'productId': purchase.productID,
       'purchaseToken': token,
     });

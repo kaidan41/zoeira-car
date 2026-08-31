@@ -1,0 +1,9 @@
+name = "zoeira-car-billing"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+# número de requisições simultâneas por cliente (default 6)
+# workers_dev_urls = true (publica em *.workers.dev automaticamente)
+
+[observability]
+enabled = true

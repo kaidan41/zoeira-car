@@ -17,7 +17,6 @@ dependencies:
   firebase_core: ^2.27.0
   firebase_auth: ^4.17.0
   cloud_firestore: ^4.15.0
-  cloud_functions: ^4.6.0
 
   # YouTube
   youtube_player_iframe: ^5.1.0

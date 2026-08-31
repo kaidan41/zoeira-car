@@ -75,51 +75,47 @@ ativa a **YouTube Data API v3** e preenche `youtubeApiKey`.
 ### 3.2 Modelo
 - **Assinatura R$ 9,90/mês**: acesso ilimitado a todos os veículos.
 - **Consulta avulsa R$ 5,00**: desbloqueia 1 veículo para sempre.
-- Todos os desbloqueios são **validados no servidor** (Cloud Functions + API do
-  Google Play). O app NÃO escreve mais em `subscriptions`/`users` — só lê.
+- Todos os desbloqueios são **validados no servidor** (Cloudflare Worker +
+  API do Google Play). O app NÃO escreve em `subscriptions`/`users` — só lê.
 
 ### 3.3 Testar compras
 - Adicione contas de teste em Play Console → Configuração → Testadores
 - Use o ambiente de sandbox para testar sem cobrar
 
-### 3.4 Validação no servidor (Cloud Functions)
-O cliente envia o **token da compra** para as funções, que validam na
-API do Google Play (Android Publisher v3) e só então concedem o acesso.
+### 3.4 Validação no servidor (Cloudflare Workers — 100% grátis)
+O cliente envia o **token da compra** para o Worker, que valida na
+API do Google Play (Android Publisher v3) e só então concede o acesso.
 Sem isso, qualquer pessoa poderia gravar "assinante: true" no Firestore.
+Sem Cloud Functions: **não precisa de plano Blaze nem de cartão**.
 
-Pré-requisito: **plano Blaze** no Firebase (Functions exige pay-as-you-go).
+Passos (2 scripts + 2 telas no console):
 
-1. Instalar dependências:
-   ```bash
-   cd functions
-   npm install
+1. **Service account** (1 clique): rode
    ```
-2. **Service account com acesso à Google Play**:
-   - Play Console → Configuração → Acesso à API → vincular sua conta Google Cloud.
-   - No Google Cloud Console crie a service account e baixe a **chave JSON**.
-     (Ou adicione a service account padrão `zoeira-car@appspot.gserviceaccount.com`
-     ao Play Console → Acesso à API — aí não precisa de secret.)
-3. Se usou chave própria, guarde o JSON num secret do Firebase:
-   ```bash
-   firebase functions:secrets:set PLAY_SERVICE_ACCOUNT_JSON
+   scripts\09_export_sa_key.ps1
    ```
-   (cole o conteúdo do JSON) → confirmar e **acessar** a versão gerada.
-4. Deploy:
-   ```bash
-   firebase deploy --only functions
+   Ele instala o `gcloud` (se faltar), faz login no navegador e baixa a
+   chave JSON para `worker\service-account.json`.
+2. **Play Console → Configuração → Acesso à API**:
+   - Associar o projeto Google Cloud `zoeira-car`.
+   - Adicionar a service account `zoeira-car@appspot.gserviceaccount.com`.
+3. **Publicar** (automatizado):
    ```
-5. **Regras novas** (`firestore.rules`): publicar no console — `subscriptions` e
-   `users` ficam com **escrita bloqueada** (só o servidor grava).
+   scripts\10_deploy_worker.ps1
+   ```
+   Pede login grátis no **Cloudflare**, registra o secret, publica o Worker
+   em `*.workers.dev` e grava a URL em `lib/utils/app_constants.dart`.
+4. **Regras novas** (`firestore.rules`): publicar no console — `subscriptions` e
+   `users` ficam com **escrita bloqueada** (só o Worker grava).
 
-Funções criadas:
-- `completePurchase` — valida o token (assinatura ou consulta avulsa) e concede o acesso.
-- `unlockVehicle` — transação no servidor: gasta 1 crédito (ou libera se houver assinatura).
-- `verifyEntitlements` — revalida o token atual com a Play (start/restore), com cache de 6h.
-- `playDeveloperNotification` — *(opcional)* webhook de renovações/cancelamentos.
+> O código fica em `worker/` (`wrangler.toml` + `src/index.js`), usado por
+> `/purchase`, `/unlock`, `/verify` e o webhook `/webhook/play`. A pasta
+> `functions/` (Cloud Functions) é uma alternativa que exige o plano Blaze
+> e atualmente **não** é usada.
 
-**RTDN (opcional, recomendado):** renovações e cancelamentos chegam sozinhos:
+**RTDN (opcional, recomendado):** renovações/cancelamentos chegam sozinhos:
 1. GCP → Pub/Sub → criar tópico e assinatura **Push** apontando para
-   `https://us-central1-<projeto>.cloudfunctions.net/playDeveloperNotification`.
+   `https://<worker>.workers.dev/webhook/play`.
 2. Play Console → Monetização → Configuração de assinaturas →
    **Notificações do desenvolvedor** → marcar/selecionar o tópico Pub/Sub.
 
@@ -203,7 +199,7 @@ subscriptions/{userId}
   verified_at: timestamp   // última validação com a Google Play
   updated_at: timestamp
 ```
-*Escrita só via Cloud Functions. A coleção `purchase_tokens` guarda o hash
+*Escrita só via Worker (Cloudflare). A coleção `purchase_tokens` guarda o hash
 de cada token já processado (idempotência da consulta avulsa).*
 
 ### Alimentar a base
@@ -240,8 +236,8 @@ node scripts\5_popular_veiculos.js   # upsert (atualiza pelo slug, não duplica)
       para o build; é gitignored, então num clone novo ele nem existe — baixar do Firebase Console)
 - [ ] Produto `zoeira_car_mensal` com preço **R$ 9,90/mês** publicado na Play Console
 - [ ] Produto `zoeira_consulta` (R$ 5,00, consumível) publicado na Play Console
-- [ ] **Cloud Functions deployado** (`completePurchase`, `unlockVehicle`, `verifyEntitlements`)
-- [ ] Service account com acesso à Google Play configurada (via secret ou appspot)
+- [ ] **Worker publicado no Cloudflare** (`scripts/10_deploy_worker.ps1`) e URL no `app_constants.dart`
+- [ ] Service account com acesso à Google Play configurada (`scripts/09_export_sa_key.ps1`)
 - [ ] Regras do `firestore.rules` **publicadas** no console (escrita só no servidor)
 - [ ] Authentication → E-mail/Senha ativo + usuário de teste com assinatura vigente
 - [ ] Ícone do app (512x512) adicionado em `android/app/src/main/res/mipmap-*/`

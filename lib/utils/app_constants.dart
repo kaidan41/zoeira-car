@@ -38,4 +38,13 @@ class AppConstants {
 
   /// Duração do cache de vídeos em memória (em minutos)
   static const int videoCacheDurationMinutes = 10;
+
+  // ─────────────────────────────────────────────
+  // Validação de pagamentos (Cloudflare Worker)
+  // ─────────────────────────────────────────────
+
+  /// URL base do Worker que valida as compras (sem barra final).
+  /// Preenchido automaticamente no deploy (scripts/10_deploy_worker.ps1).
+  static const String billingWorkerUrl =
+      'https://zoeira-car-billing.<SEU_ACCOUNT>.workers.dev';
 }
