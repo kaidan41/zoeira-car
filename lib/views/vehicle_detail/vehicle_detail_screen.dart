@@ -164,13 +164,27 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
         background: Stack(
           fit: StackFit.expand,
           children: [
-            // Illustration da marca (Hero leve do card)
+            // Imagem do veículo (IA gerada) ou ilustração vetorial
             Hero(
               tag: 'vehicle-${vehicle.id}',
-              child: VehicleIllustration(
-                brand: vehicle.brand,
-                bodyType: vehicle.bodyType,
-              ),
+              child: vehicle.thumbnailUrl.isNotEmpty
+                  ? (vehicle.thumbnailUrl.startsWith('assets/')
+                      ? Image.asset(
+                          vehicle.thumbnailUrl,
+                          fit: BoxFit.cover,
+                        )
+                      : Image.network(
+                          vehicle.thumbnailUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => VehicleIllustration(
+                            brand: vehicle.brand,
+                            bodyType: vehicle.bodyType,
+                          ),
+                        ))
+                  : VehicleIllustration(
+                      brand: vehicle.brand,
+                      bodyType: vehicle.bodyType,
+                    ),
             ),
             // Gradiente de baixo para cima
             const DecoratedBox(

@@ -80,7 +80,7 @@ class _VehicleChip extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Illustration
+            // Illustration (imagem IA se houver)
             ClipRRect(
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(14),
@@ -88,10 +88,24 @@ class _VehicleChip extends StatelessWidget {
               child: SizedBox(
                 height: 85,
                 width: double.infinity,
-                child: VehicleIllustration(
-                  brand: vehicle.brand,
-                  bodyType: vehicle.bodyType,
-                ),
+                child: vehicle.thumbnailUrl.isNotEmpty
+                    ? (vehicle.thumbnailUrl.startsWith('assets/')
+                        ? Image.asset(
+                            vehicle.thumbnailUrl,
+                            fit: BoxFit.cover,
+                          )
+                        : Image.network(
+                            vehicle.thumbnailUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => VehicleIllustration(
+                              brand: vehicle.brand,
+                              bodyType: vehicle.bodyType,
+                            ),
+                          ))
+                    : VehicleIllustration(
+                        brand: vehicle.brand,
+                        bodyType: vehicle.bodyType,
+                      ),
               ),
             ),
 

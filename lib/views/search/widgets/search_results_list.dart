@@ -80,10 +80,24 @@ class _VehicleResultCard extends StatelessWidget {
                 child: SizedBox(
                   width: 100,
                   height: 100,
-                  child: VehicleIllustration(
-                    brand: vehicle.brand,
-                    bodyType: vehicle.bodyType,
-                  ),
+                  child: vehicle.thumbnailUrl.isNotEmpty
+                      ? (vehicle.thumbnailUrl.startsWith('assets/')
+                          ? Image.asset(
+                              vehicle.thumbnailUrl,
+                              fit: BoxFit.cover,
+                            )
+                          : Image.network(
+                              vehicle.thumbnailUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => VehicleIllustration(
+                                brand: vehicle.brand,
+                                bodyType: vehicle.bodyType,
+                              ),
+                            ))
+                      : VehicleIllustration(
+                          brand: vehicle.brand,
+                          bodyType: vehicle.bodyType,
+                        ),
                 ),
               ),
             ),
