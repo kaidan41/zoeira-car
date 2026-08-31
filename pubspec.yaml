@@ -18,8 +18,8 @@ dependencies:
   firebase_auth: ^4.17.0
   cloud_firestore: ^4.15.0
 
-  # YouTube
-  youtube_player_iframe: ^5.1.0
+  # YouTube / Player de vídeo
+  webview_flutter: ^4.4.4
   http: ^1.2.1
   xml: ^6.5.0
 

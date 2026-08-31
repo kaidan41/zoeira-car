@@ -139,7 +139,7 @@ class SubscriptionModel {
 class SubscriptionPlan {
   static const String productId = 'zoeira_car_mensal';
   static const String displayName = 'Puxe agora a Capivara da Sua Nave';
-  static const String price = 'R\$ 9,90/mês';
+  static const String price = 'R\$ 14,90/mês';
   static const String description =
       'Destrave o raio-x completo de qualquer nave!';
 
@@ -157,7 +157,7 @@ class SubscriptionPlan {
 class ConsultationPlan {
   static const String productId = 'zoeira_consulta';
   static const String displayName = 'Consulta Avulsa de 1 Nave';
-  static const String price = 'R\$ 5,00';
+  static const String price = 'R\$ 7,90';
   static const String description =
       'Desbloqueia o raio-x completo de 1 veículo para sempre.';
 }
