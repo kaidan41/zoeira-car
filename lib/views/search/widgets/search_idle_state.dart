@@ -3,7 +3,9 @@ import 'package:zoeira_car/theme/app_colors.dart';
 
 /// Exibe sugestões de busca e o veredito explicado quando não há query
 class SearchIdleState extends StatelessWidget {
-  const SearchIdleState({super.key});
+  final void Function(String query)? onSuggestionTap;
+
+  const SearchIdleState({super.key, this.onSuggestionTap});
 
   static const _suggestions = [
     'Fiat Marea Turbo',
@@ -43,6 +45,22 @@ class SearchIdleState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _VerdictExplanationCard(
+            emoji: '👑',
+            title: 'Exclusivo pra Poucos!',
+            description: 'Só se o bolso aguenta o tranco. '
+                'Supercarro/hipercarro com manutenção e seguro nas alturas.',
+            color: AppColors.verdictPurple,
+          ),
+          const SizedBox(height: 8),
+          _VerdictExplanationCard(
+            emoji: '🔵',
+            title: 'Sem Histórico',
+            description: 'Recém-lançado, ainda sem dados de oficina. '
+                'Aguarde mais histórico ou faça vistoria caprichada.',
+            color: AppColors.verdictBlue,
+          ),
+          const SizedBox(height: 8),
+          _VerdictExplanationCard(
             emoji: '🚨',
             title: 'Corre que é Cilada!',
             description: 'Prepare o bolso e o número do guincho. '
@@ -59,7 +77,10 @@ class SearchIdleState extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: _suggestions
-                .map((s) => _SuggestionChip(label: s))
+                .map((s) => _SuggestionChip(
+                      label: s,
+                      onTap: () => onSuggestionTap?.call(s),
+                    ))
                 .toList(),
           ),
         ],
@@ -141,11 +162,11 @@ class _VerdictExplanationCard extends StatelessWidget {
 
 class _SuggestionChip extends StatelessWidget {
   final String label;
-  const _SuggestionChip({required this.label});
+  final VoidCallback? onTap;
+  const _SuggestionChip({required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    // Pega o controller via context para preencher o campo
     return ActionChip(
       label: Text(
         label,
@@ -158,11 +179,7 @@ class _SuggestionChip extends StatelessWidget {
       backgroundColor: AppColors.cardBackground,
       side: const BorderSide(color: AppColors.cardBorder),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      onPressed: () {
-        // Notifica a tela pai para preencher o campo de texto
-        // via um callback registrado no InheritedWidget ou simples navegação
-        // Aqui usamos um approach simples: apenas exibe o chip como hint
-      },
+      onPressed: onTap,
     );
   }
 }

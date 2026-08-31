@@ -13,6 +13,9 @@ enum VehicleVerdict {
 
   /// Exclusivo pra poucos — só se o bolso aguenta
   exclusive,
+
+  /// Sem histórico — recém-lançado, ainda sem dados de oficina
+  noHistory,
 }
 
 extension VehicleVerdictExtension on VehicleVerdict {
@@ -26,6 +29,8 @@ extension VehicleVerdictExtension on VehicleVerdict {
         return 'Corre que é Cilada!';
       case VehicleVerdict.exclusive:
         return 'Exclusivo pra Poucos!';
+      case VehicleVerdict.noHistory:
+        return 'Sem Histórico';
     }
   }
 
@@ -39,6 +44,8 @@ extension VehicleVerdictExtension on VehicleVerdict {
         return 'Prepare o bolso e o guincho 🚨';
       case VehicleVerdict.exclusive:
         return 'Só se o bolso aguenta o tranco 👑';
+      case VehicleVerdict.noHistory:
+        return 'Recém-lançado, ainda sem dados de oficina 🔵';
     }
   }
 
@@ -52,6 +59,23 @@ extension VehicleVerdictExtension on VehicleVerdict {
         return '🚨';
       case VehicleVerdict.exclusive:
         return '👑';
+      case VehicleVerdict.noHistory:
+        return '🔵';
+    }
+  }
+
+  String get firestoreName {
+    switch (this) {
+      case VehicleVerdict.recommended:
+        return 'recommended';
+      case VehicleVerdict.okIfCheap:
+        return 'ok_if_cheap';
+      case VehicleVerdict.runAway:
+        return 'run_away';
+      case VehicleVerdict.exclusive:
+        return 'exclusive';
+      case VehicleVerdict.noHistory:
+        return 'no_history';
     }
   }
 }
@@ -155,7 +179,7 @@ class VehicleModel {
       'year_start': yearStart,
       'year_end': yearEnd,
       'price_range': priceRange,
-      'verdict': verdict.name,
+      'verdict': verdict.firestoreName,
       'verdict_summary': verdictSummary,
       'thumbnail_url': thumbnailUrl,
       'body_type': bodyType,
@@ -181,6 +205,8 @@ class VehicleModel {
         return VehicleVerdict.runAway;
       case 'exclusive':
         return VehicleVerdict.exclusive;
+      case 'no_history':
+        return VehicleVerdict.noHistory;
       default:
         return VehicleVerdict.okIfCheap;
     }

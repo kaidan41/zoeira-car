@@ -28,6 +28,7 @@ class AppColors {
   static const Color verdictYellow = Color(0xFFF59E0B); // Ok se barato
   static const Color verdictRed = Color(0xFFEF4444); // Corre!
   static const Color verdictPurple = Color(0xFF8B5CF6); // Exclusivo
+  static const Color verdictBlue = Color(0xFF3B82F6); // Sem histórico
 
   // ── Shimmer ──
   static const Color shimmerBase = Color(0xFF252525);

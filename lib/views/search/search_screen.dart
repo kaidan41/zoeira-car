@@ -72,7 +72,16 @@ class _SearchScreenState extends State<SearchScreen> {
           builder: (context, ctrl, _) {
             // Estado idle — dicas e sugestões
             if (ctrl.isIdle) {
-              return const SearchIdleState();
+              return SearchIdleState(
+                onSuggestionTap: (query) {
+                  _textController.text = query;
+                  _textController.selection = TextSelection.fromPosition(
+                    TextPosition(offset: query.length),
+                  );
+                  _controller.onQueryChanged(query);
+                  _focusNode.requestFocus();
+                },
+              );
             }
 
             // Carregando
