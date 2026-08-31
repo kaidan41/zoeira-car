@@ -1726,6 +1726,7 @@ module.exports = [
   {
     brand: 'Chevrolet',
     model: 'Camaro',
+    bodyType: 'sport_gt',
     version: 'SS 6.2 V8 (Importado)',
     year_start: 2011,
     year_end: 2015,
@@ -1743,6 +1744,7 @@ module.exports = [
   {
     brand: 'Ford',
     model: 'Mustang',
+    bodyType: 'sport_gt',
     version: 'GT 5.0 V8 (Importado)',
     year_start: 2015,
     year_end: 2018,
@@ -2472,6 +2474,7 @@ module.exports = [
   {
     brand: 'Ferrari',
     model: 'F8 Tributo',
+    bodyType: 'supercar',
     version: '3.9 V8 Biturbo',
     year_start: 2019,
     year_end: 2023,
@@ -2489,6 +2492,7 @@ module.exports = [
   {
     brand: 'Ferrari',
     model: '488 GTB',
+    bodyType: 'supercar',
     version: '3.9 V8 Biturbo',
     year_start: 2015,
     year_end: 2019,
@@ -2506,6 +2510,7 @@ module.exports = [
   {
     brand: 'Ferrari',
     model: 'Roma',
+    bodyType: 'sport_gt',
     version: '3.9 V8 GT',
     year_start: 2020,
     year_end: 0,
@@ -2523,6 +2528,7 @@ module.exports = [
   {
     brand: 'Ferrari',
     model: 'SF90 Stradale',
+    bodyType: 'supercar',
     version: '4.0 V8 Hibrido Plug-in',
     year_start: 2019,
     year_end: 0,
@@ -2540,6 +2546,7 @@ module.exports = [
   {
     brand: 'Ferrari',
     model: '296 GTB',
+    bodyType: 'supercar',
     version: '3.0 V6 Hibrido',
     year_start: 2021,
     year_end: 0,
@@ -2557,6 +2564,7 @@ module.exports = [
   {
     brand: 'Ferrari',
     model: 'Purosangue',
+    bodyType: 'suv_sport',
     version: '6.5 V12',
     year_start: 2023,
     year_end: 0,
@@ -2574,6 +2582,7 @@ module.exports = [
   {
     brand: 'Porsche',
     model: '911 Carrera',
+    bodyType: 'sport_gt',
     version: '992 3.0',
     year_start: 2019,
     year_end: 0,
@@ -2591,6 +2600,7 @@ module.exports = [
   {
     brand: 'Porsche',
     model: '911 GT3',
+    bodyType: 'supercar',
     version: '992 4.0',
     year_start: 2021,
     year_end: 0,
@@ -2608,6 +2618,7 @@ module.exports = [
   {
     brand: 'Porsche',
     model: 'Taycan',
+    bodyType: 'sport_gt',
     version: '4S / Turbo',
     year_start: 2020,
     year_end: 0,
@@ -2625,6 +2636,7 @@ module.exports = [
   {
     brand: 'Porsche',
     model: 'Cayenne',
+    bodyType: 'suv_sport',
     version: '3.0 V6 / E-Hybrid',
     year_start: 2018,
     year_end: 0,
@@ -2642,6 +2654,7 @@ module.exports = [
   {
     brand: 'Porsche',
     model: 'Panamera',
+    bodyType: 'sport_gt',
     version: '4 E-Hybrid 2.9 V6',
     year_start: 2017,
     year_end: 0,
@@ -2659,6 +2672,7 @@ module.exports = [
   {
     brand: 'Porsche',
     model: 'Macan',
+    bodyType: 'suv_sport',
     version: '2.0 / GTS 2.9',
     year_start: 2014,
     year_end: 0,
@@ -2676,6 +2690,7 @@ module.exports = [
   {
     brand: 'Lamborghini',
     model: 'Aventador',
+    bodyType: 'supercar',
     version: 'SVJ 6.5 V12',
     year_start: 2018,
     year_end: 2022,
@@ -2693,6 +2708,7 @@ module.exports = [
   {
     brand: 'Lamborghini',
     model: 'Huracán',
+    bodyType: 'supercar',
     version: 'EVO 5.2 V10',
     year_start: 2019,
     year_end: 0,
@@ -2710,6 +2726,7 @@ module.exports = [
   {
     brand: 'Lamborghini',
     model: 'Urus',
+    bodyType: 'suv_sport',
     version: '4.0 V8 Biturbo',
     year_start: 2018,
     year_end: 0,
@@ -2727,6 +2744,7 @@ module.exports = [
   {
     brand: 'Lamborghini',
     model: 'Revuelto',
+    bodyType: 'supercar',
     version: '6.5 V12 Hibrido',
     year_start: 2023,
     year_end: 0,
@@ -2744,6 +2762,7 @@ module.exports = [
   {
     brand: 'McLaren',
     model: '720S',
+    bodyType: 'supercar',
     version: '4.0 V8 Biturbo',
     year_start: 2017,
     year_end: 2023,
@@ -2761,6 +2780,7 @@ module.exports = [
   {
     brand: 'Aston Martin',
     model: 'DB11',
+    bodyType: 'sport_gt',
     version: '4.0 V8 / 5.2 V12',
     year_start: 2016,
     year_end: 2023,
@@ -2778,6 +2798,7 @@ module.exports = [
   {
     brand: 'Bentley',
     model: 'Continental GT',
+    bodyType: 'sport_gt',
     version: '6.0 W12 / 4.0 V8',
     year_start: 2018,
     year_end: 0,
@@ -2795,6 +2816,7 @@ module.exports = [
   {
     brand: 'Maserati',
     model: 'MC20',
+    bodyType: 'supercar',
     version: '3.0 V6 Nettuno',
     year_start: 2020,
     year_end: 0,
