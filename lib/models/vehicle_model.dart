@@ -10,6 +10,9 @@ enum VehicleVerdict {
 
   /// Corre que é Cilada! Prepare o bolso e o guincho
   runAway,
+
+  /// Exclusivo pra poucos — só se o bolso aguenta
+  exclusive,
 }
 
 extension VehicleVerdictExtension on VehicleVerdict {
@@ -21,6 +24,8 @@ extension VehicleVerdictExtension on VehicleVerdict {
         return 'Ok, mas só se tiver barato';
       case VehicleVerdict.runAway:
         return 'Corre que é Cilada!';
+      case VehicleVerdict.exclusive:
+        return 'Exclusivo pra Poucos!';
     }
   }
 
@@ -32,6 +37,8 @@ extension VehicleVerdictExtension on VehicleVerdict {
         return 'Negocia bem e talvez valha a pena 🤔';
       case VehicleVerdict.runAway:
         return 'Prepare o bolso e o guincho 🚨';
+      case VehicleVerdict.exclusive:
+        return 'Só se o bolso aguenta o tranco 👑';
     }
   }
 
@@ -43,6 +50,8 @@ extension VehicleVerdictExtension on VehicleVerdict {
         return '⚠️';
       case VehicleVerdict.runAway:
         return '🚨';
+      case VehicleVerdict.exclusive:
+        return '👑';
     }
   }
 }
@@ -165,6 +174,8 @@ class VehicleModel {
         return VehicleVerdict.recommended;
       case 'run_away':
         return VehicleVerdict.runAway;
+      case 'exclusive':
+        return VehicleVerdict.exclusive;
       default:
         return VehicleVerdict.okIfCheap;
     }

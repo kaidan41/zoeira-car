@@ -129,6 +129,8 @@ class _VehicleChip extends StatelessWidget {
         return AppColors.verdictYellow;
       case VehicleVerdict.runAway:
         return AppColors.verdictRed;
+      case VehicleVerdict.exclusive:
+        return AppColors.verdictPurple;
     }
   }
 }
