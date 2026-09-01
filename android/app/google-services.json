@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "414915249554",
+    "project_id": "zoeira-car",
+    "storage_bucket": "zoeira-car.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:414915249554:android:4e4d87e7e1fc4c66a4ed4b",
+        "android_client_info": {
+          "package_name": "com.zoeiracartv.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "414915249554-honjl35s7n9r48m3or9a7uong97cjtqh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5-e2cWFx3yzfjCVuMEu9bxPKxX30aA40"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "414915249554-honjl35s7n9r48m3or9a7uong97cjtqh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

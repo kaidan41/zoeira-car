@@ -11,13 +11,11 @@ build/
 # Android
 android/key.properties
 android/app/zoeira_car.jks
-android/app/google-services.json
 android/.gradle/
 android/local.properties
 android/captures/
 
 # Firebase
-lib/firebase_options.dart
 scripts/serviceAccountKey.json
 firebase.json
 firestore.rules
