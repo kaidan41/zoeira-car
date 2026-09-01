@@ -163,35 +163,28 @@ class VehicleService {
     return FipeResult.fromJson(data);
   }
 
-  /// Busca preço FIPE direto pelo código FIPE (ex: "001004-9")
+  /// Busca preço FIPE direto pelo código FIPE (ex: "001004-9") usando BrasilAPI
   Future<FipeResult?> getFipePriceByCode(String fipeCode) async {
-    // Tenta todas as marcas/anos para encontrar pelo código FIPE
-    // Na prática, armazene brandCode+modelCode+yearCode no Firestore
-    // Este método é um fallback para quando só temos o código
-    try {
-      final brands = await getFipeBrands();
-      for (final brand in brands) {
-        final models = await getFipeModels(brand['codigo']!);
-        for (final model in models) {
-          // Busca os anos disponíveis
-          final yearsUrl =
-              '$_fipeBase/carros/marcas/${brand['codigo']}/modelos/${model['codigo']}/anos';
-          final yearsResp = await _client.get(Uri.parse(yearsUrl));
-          if (yearsResp.statusCode != 200) continue;
+    final cleanCode = fipeCode.replaceAll(RegExp(r'[^0-9\-]'), '').trim();
+    if (cleanCode.isEmpty) return null;
 
-          final years = jsonDecode(yearsResp.body) as List<dynamic>;
-          for (final year in years) {
-            final result = await getFipePrice(
-              brandCode: brand['codigo']!,
-              modelCode: model['codigo']!,
-              yearCode: year['codigo'].toString(),
-            );
-            if (result?.codigoFipe == fipeCode) return result;
-          }
+    try {
+      final url = 'https://brasilapi.com.br/api/fipe/preco/v1/$cleanCode';
+      final response = await _client.get(
+        Uri.parse(url),
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is List && decoded.isNotEmpty) {
+          return FipeResult.fromJson(decoded.first as Map<String, dynamic>);
+        } else if (decoded is Map<String, dynamic>) {
+          return FipeResult.fromJson(decoded);
         }
       }
     } catch (_) {
-      // Busca exaustiva falhou — retorna null
+      // Fallback em caso de erro na BrasilAPI
     }
     return null;
   }
@@ -230,17 +223,26 @@ class FipeResult {
     required this.siglaCombustivel,
   });
 
+  /// Converte valor formatado ("R$ 45.000,00" ou "45000") para double numérico
+  double get valorNumerico {
+    final digits = valor.replaceAll(RegExp(r'[^0-9,]'), '').replaceAll(',', '.');
+    return double.tryParse(digits) ?? 0.0;
+  }
+
   factory FipeResult.fromJson(Map<String, dynamic> json) {
     return FipeResult(
-      valor: json['Valor'] ?? '',
-      marca: json['Marca'] ?? '',
-      modelo: json['Modelo'] ?? '',
-      anoModelo: json['AnoModelo']?.toString() ?? '',
-      combustivel: json['Combustivel'] ?? '',
-      codigoFipe: json['CodigoFipe'] ?? '',
-      mesReferencia: json['MesReferencia'] ?? '',
-      tipoVeiculo: json['TipoVeiculo']?.toString() ?? '',
-      siglaCombustivel: json['SiglaCombustivel'] ?? '',
+      valor: (json['valor'] ?? json['Valor'] ?? '').toString(),
+      marca: (json['marca'] ?? json['Marca'] ?? '').toString(),
+      modelo: (json['modelo'] ?? json['Modelo'] ?? '').toString(),
+      anoModelo: (json['anoModelo'] ?? json['AnoModelo'] ?? '').toString(),
+      combustivel: (json['combustivel'] ?? json['Combustivel'] ?? '').toString(),
+      codigoFipe: (json['codigoFipe'] ?? json['CodigoFipe'] ?? '').toString(),
+      mesReferencia:
+          (json['mesReferencia'] ?? json['MesReferencia'] ?? '').toString(),
+      tipoVeiculo:
+          (json['tipoVeiculo'] ?? json['TipoVeiculo'] ?? '').toString(),
+      siglaCombustivel:
+          (json['siglaCombustivel'] ?? json['SiglaCombustivel'] ?? '').toString(),
     );
   }
 }

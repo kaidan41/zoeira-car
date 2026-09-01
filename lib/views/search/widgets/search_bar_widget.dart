@@ -33,8 +33,9 @@ class SearchBarWidget extends StatelessWidget {
         hintText: 'Procurar Nave... ex: Gol, Civic, Marea',
         hintStyle: const TextStyle(
           color: AppColors.textSecondary,
-          fontSize: 15,
+          fontSize: 14,
         ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         border: InputBorder.none,
         suffixIcon: ValueListenableBuilder<TextEditingValue>(
           valueListenable: textController,
@@ -42,7 +43,9 @@ class SearchBarWidget extends StatelessWidget {
             if (value.text.isEmpty) return const SizedBox.shrink();
             return IconButton(
               icon: const Icon(Icons.close_rounded,
-                  color: AppColors.textSecondary, size: 20),
+                  color: AppColors.textSecondary, size: 18),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               onPressed: onClear,
               tooltip: 'Limpar busca',
             );

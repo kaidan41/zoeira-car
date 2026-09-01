@@ -183,6 +183,29 @@ class AuthController extends ChangeNotifier {
   }
 
   // ─────────────────────────────────────────────
+  // Atualizar Avatar / Foto de Perfil
+  // ─────────────────────────────────────────────
+
+  Future<bool> updateAvatar(String avatarUrl) async {
+    final current = _auth.currentUser;
+    if (current == null) return false;
+
+    try {
+      await current.updatePhotoURL(avatarUrl);
+      await _firestore.collection('users').doc(current.uid).set({
+        'photo_url': avatarUrl,
+        'updated_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      _user = _auth.currentUser;
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ─────────────────────────────────────────────
   // Helpers internos
   // ─────────────────────────────────────────────
 

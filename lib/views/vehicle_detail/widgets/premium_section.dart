@@ -45,9 +45,31 @@ class PremiumSection extends StatelessWidget {
               vehicle.chronicProblems!.isNotEmpty)
             _PremiumInfoCard(
               icon: '🔧',
-              title: 'Onde o bicho pega de verdade',
+              title: 'Onde o bicho pega de verdade (Crônicos)',
               content: vehicle.chronicProblems!,
               accentColor: AppColors.verdictRed,
+            ),
+
+          const SizedBox(height: 14),
+
+          // ── Cuidados ao Comprar / Checklist do Piloto ──
+          if (vehicle.buyingCare != null && vehicle.buyingCare!.isNotEmpty)
+            _PremiumInfoCard(
+              icon: '🔍',
+              title: 'Cuidados ao Comprar (Checklist do Piloto)',
+              content: vehicle.buyingCare!,
+              accentColor: AppColors.verdictYellow,
+            ),
+
+          const SizedBox(height: 14),
+
+          // ── Opinião dos Donos / A Real de Quem Tem ──
+          if (vehicle.ownersOpinion != null && vehicle.ownersOpinion!.isNotEmpty)
+            _PremiumInfoCard(
+              icon: '🗣️',
+              title: 'Opinião dos Donos (A Real de Quem Tem)',
+              content: vehicle.ownersOpinion!,
+              accentColor: AppColors.primary,
             ),
 
           const SizedBox(height: 14),

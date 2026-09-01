@@ -99,6 +99,8 @@ class VehicleModel {
   final String? chronicProblems; // Onde o bicho pega de verdade
   final String? whyBuy; // Por que comprar
   final String? whyAvoid; // Por que passar longe
+  final String? buyingCare; // Cuidados ao comprar / Checklist do piloto
+  final String? ownersOpinion; // Opinião real dos donos
   final String? technicalSpecs; // Ficha técnica completa
   final String? fipeCode; // Código FIPE para busca
   final double? fipePrice; // Preço FIPE atualizado
@@ -126,6 +128,8 @@ class VehicleModel {
     this.chronicProblems,
     this.whyBuy,
     this.whyAvoid,
+    this.buyingCare,
+    this.ownersOpinion,
     this.technicalSpecs,
     this.fipeCode,
     this.fipePrice,
@@ -160,6 +164,8 @@ class VehicleModel {
       chronicProblems: data['chronic_problems'],
       whyBuy: data['why_buy'],
       whyAvoid: data['why_avoid'],
+      buyingCare: data['buying_care'],
+      ownersOpinion: data['owners_opinion'],
       technicalSpecs: data['technical_specs'],
       fipeCode: data['fipe_code'],
       fipePrice: (data['fipe_price'] as num?)?.toDouble(),
@@ -186,6 +192,8 @@ class VehicleModel {
       'chronic_problems': chronicProblems,
       'why_buy': whyBuy,
       'why_avoid': whyAvoid,
+      'buying_care': buyingCare,
+      'owners_opinion': ownersOpinion,
       'technical_specs': technicalSpecs,
       'fipe_code': fipeCode,
       'fipe_price': fipePrice,
@@ -227,6 +235,8 @@ class VehicleModel {
     String? chronicProblems,
     String? whyBuy,
     String? whyAvoid,
+    String? buyingCare,
+    String? ownersOpinion,
     String? technicalSpecs,
     String? fipeCode,
     double? fipePrice,
@@ -248,6 +258,8 @@ class VehicleModel {
       chronicProblems: chronicProblems ?? this.chronicProblems,
       whyBuy: whyBuy ?? this.whyBuy,
       whyAvoid: whyAvoid ?? this.whyAvoid,
+      buyingCare: buyingCare ?? this.buyingCare,
+      ownersOpinion: ownersOpinion ?? this.ownersOpinion,
       technicalSpecs: technicalSpecs ?? this.technicalSpecs,
       fipeCode: fipeCode ?? this.fipeCode,
       fipePrice: fipePrice ?? this.fipePrice,

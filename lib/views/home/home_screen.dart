@@ -9,6 +9,7 @@ import 'package:zoeira_car/views/home/widgets/video_player_section.dart';
 import 'package:zoeira_car/views/home/widgets/video_list_section.dart';
 import 'package:zoeira_car/views/home/widgets/featured_vehicles_banner.dart';
 import 'package:zoeira_car/views/home/widgets/subscription_cta_banner.dart';
+import 'package:zoeira_car/views/home/widgets/avatar_picker_modal.dart';
 import 'package:zoeira_car/theme/app_colors.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -170,6 +171,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? auth.email!.trim()[0].toUpperCase()
                     : 'P');
 
+            final hasPhoto = auth.photoUrl != null && auth.photoUrl!.isNotEmpty;
+
             return Padding(
               padding: const EdgeInsets.only(right: 12),
               child: GestureDetector(
@@ -188,16 +191,21 @@ class _HomeScreenState extends State<HomeScreen> {
                           : AppColors.primary.withOpacity(0.3))
                       : AppColors.cardBorder,
                   child: isLoggedIn
-                      ? Text(
-                          initial,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: sub.isSubscriber
-                                ? Colors.black
-                                : AppColors.primary,
-                          ),
-                        )
+                      ? (hasPhoto
+                          ? Text(
+                              auth.photoUrl!,
+                              style: const TextStyle(fontSize: 18),
+                            )
+                          : Text(
+                              initial,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: sub.isSubscriber
+                                    ? Colors.black
+                                    : AppColors.primary,
+                              ),
+                            ))
                       : const Icon(
                           Icons.person_outline_rounded,
                           size: 18,
@@ -229,6 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
             : (auth.email?.trim().isNotEmpty == true
                 ? auth.email!.trim()[0].toUpperCase()
                 : 'P');
+        final hasPhoto = auth.photoUrl != null && auth.photoUrl!.isNotEmpty;
 
         return SafeArea(
           child: Padding(
@@ -247,19 +256,66 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Avatar
-                CircleAvatar(
-                  radius: 34,
-                  backgroundColor: sub.isSubscriber
-                      ? AppColors.primary
-                      : AppColors.cardBackground,
-                  child: Text(
-                    initial,
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: sub.isSubscriber ? Colors.black : AppColors.primary,
-                    ),
+                // Avatar Interativo (toque para trocar foto)
+                GestureDetector(
+                  onTap: () {
+                    AvatarPickerModal.show(
+                      context: context,
+                      currentPhotoUrl: auth.photoUrl,
+                      onSelected: (avatarEmoji) async {
+                        final ok = await auth.updateAvatar(avatarEmoji);
+                        if (ok && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Avatar atualizado para $avatarEmoji! 🏎️'),
+                              backgroundColor: AppColors.verdictGreen,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      },
+                    );
+                  },
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 36,
+                        backgroundColor: sub.isSubscriber
+                            ? AppColors.primary
+                            : AppColors.cardBackground,
+                        child: hasPhoto
+                            ? Text(
+                                auth.photoUrl!,
+                                style: const TextStyle(fontSize: 38),
+                              )
+                            : Text(
+                                initial,
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
+                                  color: sub.isSubscriber
+                                      ? Colors.black
+                                      : AppColors.primary,
+                                ),
+                              ),
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.edit_rounded,
+                            size: 14,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 12),

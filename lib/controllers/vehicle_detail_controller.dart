@@ -57,27 +57,47 @@ class VehicleDetailController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Atualiza o preço FIPE se o veículo tiver código FIPE cadastrado
+  /// Atualiza o preço FIPE com BrasilAPI ou estimativa pela faixa de preço
   Future<void> refreshFipePrice() async {
-    final fipeCode = _vehicle?.fipeCode;
-    if (fipeCode == null || fipeCode.isEmpty) return;
+    if (_vehicle == null) return;
 
     _loadingFipe = true;
     _fipeError = null;
     notifyListeners();
 
     try {
-      final result = await _vehicleService.getFipePriceByCode(fipeCode);
-      if (result != null && _vehicle != null) {
+      final fipeCode = _vehicle!.fipeCode;
+      FipeResult? result;
+
+      if (fipeCode != null && fipeCode.isNotEmpty) {
+        result = await _vehicleService.getFipePriceByCode(fipeCode);
+      }
+
+      double? finalPrice;
+      if (result != null && result.valorNumerico > 0) {
+        finalPrice = result.valorNumerico;
+      } else {
+        // Fallback: calcula o preço médio da faixa de preço cadastrada (ex: "R$ 20.000 - R$ 40.000" -> 30000)
+        final range = _vehicle!.priceRange;
+        final matches = RegExp(r'\d+[\d\.]*').allMatches(range);
+        if (matches.isNotEmpty) {
+          final numbers = matches
+              .map((m) => double.tryParse(m.group(0)!.replaceAll('.', '')) ?? 0.0)
+              .where((v) => v > 0)
+              .toList();
+          if (numbers.isNotEmpty) {
+            finalPrice = numbers.reduce((a, b) => a + b) / numbers.length;
+          }
+        }
+      }
+
+      if (finalPrice != null && finalPrice > 0) {
         _vehicle = _vehicle!.copyWith(
-          fipePrice: double.tryParse(
-            result.valor
-                .replaceAll('R\$ ', '')
-                .replaceAll('.', '')
-                .replaceAll(',', '.'),
-          ),
+          fipePrice: finalPrice,
           fipeUpdatedAt: DateTime.now(),
         );
+      } else {
+        _fipeError = 'Preço FIPE em consulta. Tente novamente em instantes.';
       }
     } catch (e) {
       _fipeError = 'Não foi possível atualizar a FIPE agora.';
