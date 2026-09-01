@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
@@ -5,9 +6,19 @@ enum AuthState { idle, loading, authenticated, unauthenticated, error }
 
 class AuthController extends ChangeNotifier {
   final FirebaseAuth _auth;
+  final FirebaseFirestore _firestore;
 
-  AuthController({FirebaseAuth? auth})
-      : _auth = auth ?? FirebaseAuth.instance {
+  AuthController({
+    FirebaseAuth? auth,
+    FirebaseFirestore? firestore,
+  })  : _auth = auth ?? FirebaseAuth.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance {
+    // Inicializa o usuário de forma síncrona
+    _user = _auth.currentUser;
+    _state = _user != null
+        ? AuthState.authenticated
+        : AuthState.unauthenticated;
+
     // Escuta mudanças de estado do Firebase em tempo real
     _auth.authStateChanges().listen(_onAuthStateChanged);
   }
@@ -52,17 +63,34 @@ class AuthController extends ChangeNotifier {
     _setLoading();
 
     try {
-      await _auth.signInWithEmailAndPassword(
+      final credential = await _auth.signInWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
+
+      _user = credential.user ?? _auth.currentUser;
+
+      // Garante ou atualiza o registro do usuário no Firestore
+      if (_user != null) {
+        try {
+          await _firestore.collection('users').doc(_user!.uid).set({
+            'uid': _user!.uid,
+            'email': email.trim(),
+            'displayName': _user!.displayName ?? email.trim().split('@').first,
+            'last_login_at': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        } catch (e) {
+          debugPrint('Aviso: Falha ao atualizar dados de login no Firestore: $e');
+        }
+      }
+
       _clearError();
       return true;
     } on FirebaseAuthException catch (e) {
       _setError(_translateFirebaseError(e.code));
       return false;
     } catch (e) {
-      _setError('Erro inesperado. Tente novamente.');
+      _setError('Erro ao entrar: $e');
       return false;
     }
   }
@@ -84,9 +112,25 @@ class AuthController extends ChangeNotifier {
         password: password,
       );
 
-      // Atualiza o nome de exibição
-      await credential.user?.updateDisplayName(displayName.trim());
-      await credential.user?.reload();
+      final user = credential.user;
+      if (user != null) {
+        // Atualiza o nome de exibição no Firebase Auth
+        await user.updateDisplayName(displayName.trim());
+        await user.reload();
+        _user = _auth.currentUser;
+
+        // Grava o documento do usuário no Firestore com perfil inicial
+        await _firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'displayName': displayName.trim(),
+          'email': email.trim(),
+          'unlocked_vehicle_ids': <String>[],
+          'consulta_credits': 0,
+          'created_at': FieldValue.serverTimestamp(),
+          'updated_at': FieldValue.serverTimestamp(),
+          'last_login_at': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
 
       _clearError();
       return true;
@@ -94,7 +138,7 @@ class AuthController extends ChangeNotifier {
       _setError(_translateFirebaseError(e.code));
       return false;
     } catch (e) {
-      _setError('Erro inesperado. Tente novamente.');
+      _setError('Erro ao criar conta: $e');
       return false;
     }
   }
@@ -114,7 +158,7 @@ class AuthController extends ChangeNotifier {
       _setError(_translateFirebaseError(e.code));
       return false;
     } catch (e) {
-      _setError('Não foi possível enviar o e-mail. Tente novamente.');
+      _setError('Não foi possível enviar o e-mail: $e');
       return false;
     }
   }
@@ -125,6 +169,9 @@ class AuthController extends ChangeNotifier {
 
   Future<void> signOut() async {
     await _auth.signOut();
+    _user = null;
+    _state = AuthState.unauthenticated;
+    notifyListeners();
   }
 
   // ─────────────────────────────────────────────
@@ -150,31 +197,33 @@ class AuthController extends ChangeNotifier {
 
   void clearError() => _clearError();
 
-  /// Traduz os códigos de erro do Firebase para PT-BR com linguagem zoeira
+  /// Traduz os códigos de erro do Firebase para PT-BR com linguagem amigável e zoeira
   String _translateFirebaseError(String code) {
     switch (code) {
       case 'user-not-found':
-        return 'Esse e-mail não tá cadastrado na garagem, não.';
+        return 'Esse e-mail não tá cadastrado na garagem. Que tal criar uma conta?';
       case 'wrong-password':
-        return 'Senha errada! Deu BO no acesso.';
+        return 'Senha incorreta! Dá uma conferida e tenta de novo.';
       case 'invalid-credential':
         return 'E-mail ou senha incorretos. Confere aí!';
       case 'email-already-in-use':
-        return 'Esse e-mail já tá na garagem. Tenta fazer login!';
+        return 'Esse e-mail já tá cadastrado na garagem. Tenta fazer login!';
       case 'weak-password':
         return 'Essa senha tá fraca demais. Coloca pelo menos 6 caracteres.';
       case 'invalid-email':
-        return 'E-mail inválido. Confere o formato e tenta de novo.';
+        return 'E-mail inválido. Confere o formato (ex: nome@email.com).';
       case 'user-disabled':
         return 'Essa conta foi desativada. Fala com o suporte.';
       case 'too-many-requests':
-        return 'Muitas tentativas! Dá um tempo e tenta de novo.';
+        return 'Muitas tentativas em sequência! Aguarde alguns minutos e tente de novo.';
       case 'network-request-failed':
-        return 'Sem conexão. Verifica a internet e tenta de novo.';
+        return 'Sem conexão com a internet. Verifica sua rede e tenta de novo.';
       case 'operation-not-allowed':
-        return 'Este método de login não está habilitado.';
+        return 'O login com E-mail/Senha não está ativado no Firebase Console (Authentication > Sign-in method).';
+      case 'channel-error':
+        return 'Preencha todos os campos corretamente.';
       default:
-        return 'Deu BO: $code. Tenta de novo!';
+        return 'Erro ($code). Verifique os dados e tente novamente.';
     }
   }
 }

@@ -37,10 +37,20 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Assinaturas: somente o proprio usuario logado
+    // Assinaturas: somente o proprio usuario logado (leitura)
     match /subscriptions/{userId} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId;
+      allow read: if request.auth != null
+                  && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    // Acesso e perfil do usuario: leitura, criacao e atualizacao pelo proprio usuario
+    match /users/{userId} {
+      allow read: if request.auth != null
+                  && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+                            && request.auth.uid == userId;
+      allow delete: if false;
     }
 
     // Bloqueia qualquer outra colecao por padrao

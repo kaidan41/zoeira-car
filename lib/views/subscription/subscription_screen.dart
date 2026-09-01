@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:zoeira_car/controllers/subscription_controller.dart';
+import 'package:zoeira_car/controllers/auth_controller.dart';
 import 'package:zoeira_car/models/subscription_model.dart';
+import 'package:zoeira_car/routes/app_routes.dart';
 import 'package:zoeira_car/theme/app_colors.dart';
 import 'package:zoeira_car/utils/app_constants.dart';
 import 'package:zoeira_car/views/subscription/widgets/plan_card.dart';
@@ -87,7 +89,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   isSubscriber: ctrl.isSubscriber,
                   isLoading: ctrl.isPurchasing,
                   product: ctrl.product,
-                  onPurchase: ctrl.purchase,
+                  onPurchase: () {
+                    final auth = context.read<AuthController>();
+                    if (!auth.isLoggedIn) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Faça login para assinar o plano 🚗'),
+                          backgroundColor: AppColors.verdictRed,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      context.push(AppRoutes.login);
+                      return;
+                    }
+                    ctrl.purchase();
+                  },
                 ),
 
                 const SizedBox(height: 16),
@@ -251,8 +267,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             TextButton(
               onPressed: () => launchUrl(

@@ -9,7 +9,7 @@ class SearchIdleState extends StatelessWidget {
 
   static const _suggestions = [
     'Fiat Marea Turbo',
-    'VW Gol Quadrado',
+    'Volkswagen Gol Quadrado',
     'Renault Kardian',
     'Chevrolet Onix',
     'Toyota Corolla',

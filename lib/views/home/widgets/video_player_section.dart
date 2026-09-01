@@ -66,10 +66,99 @@ class _VideoPlayerSectionState extends State<VideoPlayerSection> {
             onPageStarted: (_) {
               if (mounted) setState(() => _pageLoading = true);
             },
-            onPageFinished: (_) {
-              if (mounted) setState(() => _pageLoading = false);
+            onProgress: (progress) {
+              if (progress > 30) {
+                // Injeta antes mesmo da página terminar de carregar
+                _controller?.runJavaScript('''
+                  (function() {
+                    var id = 'zoeira-persistent-hide-style';
+                    if (!document.getElementById(id)) {
+                      var style = document.createElement('style');
+                      style.id = id;
+                      style.textContent = `
+                        ytm-mobile-topbar-renderer,
+                        ytm-header-bar,
+                        header,
+                        .mobile-topbar-header,
+                        .ytm-mobile-topbar-renderer,
+                        ytm-pivot-bar-renderer,
+                        .pivot-bar,
+                        .ytm-open-app-button,
+                        .open-app-button,
+                        [aria-label*="Abrir"],
+                        [aria-label*="Open"],
+                        ytm-promoted-sparkles-web-renderer,
+                        .banner-image,
+                        ytm-companion-ad-renderer {
+                          display: none !important;
+                          visibility: hidden !important;
+                          height: 0 !important;
+                          max-height: 0 !important;
+                          opacity: 0 !important;
+                          pointer-events: none !important;
+                          position: absolute !important;
+                          top: -9999px !important;
+                        }
+                      `;
+                      (document.head || document.documentElement).appendChild(style);
+                    }
+                  })();
+                ''');
+              }
+            },
+            onPageFinished: (url) {
+              if (mounted) {
+                setState(() => _pageLoading = false);
+              }
+              _controller?.runJavaScript('''
+                (function() {
+                  var hideIt = function() {
+                    var id = 'zoeira-persistent-hide-style';
+                    if (!document.getElementById(id)) {
+                      var style = document.createElement('style');
+                      style.id = id;
+                      style.textContent = `
+                        ytm-mobile-topbar-renderer,
+                        ytm-header-bar,
+                        header,
+                        .mobile-topbar-header,
+                        .ytm-mobile-topbar-renderer,
+                        ytm-pivot-bar-renderer,
+                        .pivot-bar,
+                        .ytm-open-app-button,
+                        .open-app-button,
+                        [aria-label*="Abrir"],
+                        [aria-label*="Open"],
+                        ytm-promoted-sparkles-web-renderer,
+                        .banner-image,
+                        ytm-companion-ad-renderer {
+                          display: none !important;
+                          visibility: hidden !important;
+                          height: 0 !important;
+                          max-height: 0 !important;
+                          opacity: 0 !important;
+                          pointer-events: none !important;
+                          position: absolute !important;
+                          top: -9999px !important;
+                        }
+                      `;
+                      (document.head || document.documentElement).appendChild(style);
+                    }
+                    var topbars = document.querySelectorAll('ytm-mobile-topbar-renderer, ytm-header-bar, header, .mobile-topbar-header, [aria-label*="Abrir app"]');
+                    topbars.forEach(function(el) { el.remove(); });
+                  };
+                  hideIt();
+                  setInterval(hideIt, 1000);
+                })();
+              ''');
             },
             onNavigationRequest: (request) {
+              // Bloqueia tentativas de deep link "abrir no app" vindas da própria página do YouTube
+              if (request.url.contains('open_app') ||
+                  request.url.startsWith('vnd.youtube') ||
+                  request.url.startsWith('intent://')) {
+                return NavigationDecision.prevent;
+              }
               // Mantém dentro do YouTube; links externos abrem no navegador.
               final host = Uri.tryParse(request.url)?.host.toLowerCase() ?? '';
               final isYouTube = host == 'youtube.com' ||
@@ -181,7 +270,7 @@ class _VideoPlayerSectionState extends State<VideoPlayerSection> {
 
               const SizedBox(height: 12),
 
-              // Abrir no app do YouTube
+              // Assistir no YouTube (App nativo)
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(

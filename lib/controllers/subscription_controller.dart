@@ -9,6 +9,7 @@ enum SubscriptionLoadState { idle, loading, purchasing, restoring, loaded, error
 
 class SubscriptionController extends ChangeNotifier {
   final SubscriptionService _service;
+  AuthController? _auth;
 
   SubscriptionController({SubscriptionService? service})
       : _service = service ?? SubscriptionService() {
@@ -93,6 +94,7 @@ class SubscriptionController extends ChangeNotifier {
 
   // Chamado pelo ProxyProvider quando AuthController muda
   void updateAuth(AuthController auth) {
+    _auth = auth;
     if (auth.isLoggedIn) {
       reload();
     } else {
@@ -120,6 +122,11 @@ class SubscriptionController extends ChangeNotifier {
   /// Desbloqueia 1 veículo por R$ 5: usa um crédito existente ou
   /// inicia a compra da consulta avulsa na Play Store.
   Future<bool> unlockOne(String vehicleId) async {
+    if (_auth == null || !_auth!.isLoggedIn) {
+      _setError('Faça login para desbloquear a nave 🚗');
+      return false;
+    }
+
     if (isUnlocked(vehicleId)) return true;
 
     if (credits > 0) {
@@ -170,6 +177,11 @@ class SubscriptionController extends ChangeNotifier {
 
   /// Compra o plano de assinatura mensal
   Future<void> purchase() async {
+    if (_auth == null || !_auth!.isLoggedIn) {
+      _setError('Faça login para assinar o plano 🚗');
+      return;
+    }
+
     if (_product == null) {
       _setError('Produto não disponível no momento. Tente novamente mais tarde.');
       return;

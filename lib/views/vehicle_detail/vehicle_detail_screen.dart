@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zoeira_car/controllers/vehicle_detail_controller.dart';
 import 'package:zoeira_car/controllers/subscription_controller.dart';
+import 'package:zoeira_car/controllers/auth_controller.dart';
 import 'package:zoeira_car/models/vehicle_model.dart';
 import 'package:zoeira_car/routes/app_routes.dart';
 import 'package:zoeira_car/theme/app_colors.dart';
@@ -104,9 +105,24 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                       isCreditUnlocking: subCtrl.isCreditUnlocking,
                       isConsultaPurchasing: subCtrl.isConsultaPurchasing,
                       credits: subCtrl.credits,
-                      onUnlockSingle: () => _unlockSingle(subCtrl, vehicle),
-                      onSubscribe: () =>
-                          context.push(AppRoutes.subscription),
+                      onUnlockSingle: () {
+                        final auth = context.read<AuthController>();
+                        if (!auth.isLoggedIn) {
+                          _showSnack(context, 'Faça login para desbloquear a nave 🚗', false);
+                          context.push(AppRoutes.login);
+                          return;
+                        }
+                        _unlockSingle(subCtrl, vehicle);
+                      },
+                      onSubscribe: () {
+                        final auth = context.read<AuthController>();
+                        if (!auth.isLoggedIn) {
+                          _showSnack(context, 'Faça login para assinar o plano 🚗', false);
+                          context.push(AppRoutes.login);
+                          return;
+                        }
+                        context.push(AppRoutes.subscription);
+                      },
                     ),
             ),
 

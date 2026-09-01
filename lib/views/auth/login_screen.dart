@@ -21,6 +21,17 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
 
   @override
+  void initState() {
+    super.initState();
+    // Limpa mensagens de erro de telas anteriores
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AuthController>().clearError();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -28,15 +39,23 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
 
     final auth = context.read<AuthController>();
     final success = await auth.signInWithEmail(
-      email: _emailController.text,
+      email: _emailController.text.trim(),
       password: _passwordController.text,
     );
 
     if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bem-vindo de volta, ${auth.displayName ?? 'Piloto'}! 🚗'),
+          backgroundColor: AppColors.verdictGreen,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
       context.go(AppRoutes.home);
     }
   }

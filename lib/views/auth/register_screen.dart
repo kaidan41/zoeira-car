@@ -24,6 +24,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirm = true;
 
   @override
+  void initState() {
+    super.initState();
+    // Limpa mensagens de erro de telas anteriores
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AuthController>().clearError();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
@@ -33,18 +44,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
 
     final auth = context.read<AuthController>();
     final success = await auth.registerWithEmail(
-      email: _emailController.text,
+      email: _emailController.text.trim(),
       password: _passwordController.text,
-      displayName: _nameController.text,
+      displayName: _nameController.text.trim(),
     );
 
     if (success && mounted) {
-      // Novato vai direto pra página de busca da nave
-      context.go(AppRoutes.search);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Conta criada com sucesso! Bem-vindo à garagem, ${auth.displayName ?? 'Piloto'}! 🚀'),
+          backgroundColor: AppColors.verdictGreen,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      context.go(AppRoutes.home);
     }
   }
 
