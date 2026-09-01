@@ -18,6 +18,11 @@ class AppConstants {
   static const String packageName = 'com.zoeiracartv.app';
 
   // ─────────────────────────────────────────────
+  // YouTube Data API v3
+  // ─────────────────────────────────────────────
+  static const String youtubeApiKey = 'AIzaSyCxzW4gVl1loXciHlEVM_PwRNrvOHhCBcw';
+
+  // ─────────────────────────────────────────────
   // Links externos
   // ─────────────────────────────────────────────
 

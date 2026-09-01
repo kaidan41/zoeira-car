@@ -1,86 +1,67 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:xml/xml.dart';
 import 'package:zoeira_car/models/video_item_model.dart';
 import 'package:zoeira_car/utils/app_constants.dart';
 
 class YouTubeService {
-  static const String _feedUrl =
-      'https://www.youtube.com/feeds/videos.xml?channel_id=';
+  static const String _apiBase = 'https://www.googleapis.com/youtube/v3';
 
   final http.Client _client;
 
   YouTubeService({http.Client? client}) : _client = client ?? http.Client();
 
-  /// Busca os vídeos mais recentes do canal Zoeira Car via RSS (sem API key).
-  ///
-  /// O feed do YouTube retorna no máximo as 15 últimas publicações e inclui:
-  /// título, descrição, miniatura, data de publicação e número de views.
-  /// Não inclui duração dos vídeos.
-  Future<List<VideoItemModel>> fetchLatestVideos({int maxResults = 15}) async {
-    final uri = Uri.parse('$_feedUrl${AppConstants.youtubeChannelId}');
+  /// Busca os vídeos mais recentes do canal via YouTube Data API v3.
+  Future<List<VideoItemModel>> fetchLatestVideos({int maxResults = 20}) async {
+    final uri = Uri.parse(
+      '$_apiBase/search'
+      '?part=snippet'
+      '&channelId=${AppConstants.youtubeChannelId}'
+      '&maxResults=$maxResults'
+      '&order=date'
+      '&type=video'
+      '&key=${AppConstants.youtubeApiKey}',
+    );
 
     final response = await _client.get(uri);
+
     if (response.statusCode != 200) {
       throw YouTubeServiceException(
-        'Erro ao buscar vídeos: ${response.statusCode}',
+        'Erro ao buscar vídeos: ${response.statusCode} — ${response.body}',
       );
     }
 
-    final decoded = utf8.decode(response.bodyBytes);
-    final document = XmlDocument.parse(decoded);
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final items = data['items'] as List<dynamic>? ?? [];
 
     final videos = <VideoItemModel>[];
-    final entries = document.descendants
-        .whereType<XmlElement>()
-        .where((e) => e.name.local == 'entry');
 
-    for (final entry in entries) {
-      final videoId = _firstText(entry, 'videoId') ?? '';
+    for (final item in items) {
+      final id      = item['id'] as Map<String, dynamic>?;
+      final snippet = item['snippet'] as Map<String, dynamic>?;
+      if (id == null || snippet == null) continue;
+
+      final videoId = id['videoId'] as String? ?? '';
       if (videoId.isEmpty) continue;
 
-      final title = _firstText(entry, 'title') ?? '';
-      final description = _firstText(entry, 'description') ?? '';
-      final channelTitle =
-          _firstText(entry, 'name') ?? 'Zoeira Car';
-
-      final thumbnail =
-          _first(entry, 'thumbnail')?.getAttribute('url') ?? '';
-
-      final publishedAt =
-          DateTime.tryParse(_firstText(entry, 'published') ?? '') ??
-              DateTime.now();
-
-      final statsNode = _first(entry, 'statistics');
-      final viewCount = int.tryParse(statsNode?.getAttribute('views') ?? '');
+      final thumbs = snippet['thumbnails'] as Map<String, dynamic>? ?? {};
+      final thumb  = (thumbs['high']    as Map<String, dynamic>?)?['url']
+                  ?? (thumbs['medium']  as Map<String, dynamic>?)?['url']
+                  ?? 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
 
       videos.add(VideoItemModel(
-        videoId: videoId,
-        title: title,
-        description: description,
-        thumbnailUrl: thumbnail == ''
-            ? 'https://img.youtube.com/vi/$videoId/hqdefault.jpg'
-            : thumbnail,
-        channelTitle: channelTitle,
-        publishedAt: publishedAt,
-        viewCount: viewCount,
+        videoId:      videoId,
+        title:        snippet['title']        as String? ?? '',
+        description:  snippet['description']  as String? ?? '',
+        thumbnailUrl: thumb as String,
+        channelTitle: snippet['channelTitle'] as String? ?? 'ZoeiraCar',
+        publishedAt:  DateTime.tryParse(
+                        snippet['publishedAt'] as String? ?? '',
+                      ) ?? DateTime.now(),
+        viewCount: null, // search endpoint não retorna views
       ));
-
-      if (videos.length >= maxResults) break;
     }
 
     return videos;
-  }
-
-  XmlElement? _first(XmlElement parent, String localName) {
-    for (final node in parent.descendants) {
-      if (node is XmlElement && node.name.local == localName) return node;
-    }
-    return null;
-  }
-
-  String? _firstText(XmlElement parent, String localName) {
-    return _first(parent, localName)?.innerText;
   }
 
   void dispose() => _client.close();
