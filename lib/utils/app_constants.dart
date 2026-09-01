@@ -25,9 +25,9 @@ class AppConstants {
       'https://www.youtube.com/@ZoeiraCar';
   static const String instagramUrl = 'https://www.instagram.com/zoeiracartv';
   static const String privacyPolicyUrl =
-      'https://zoeiracartv.com.br/privacidade';
+      'https://kaidan41.github.io/zoeira-car/privacidade.html';
   static const String termsOfServiceUrl =
-      'https://zoeiracartv.com.br/termos';
+      'https://kaidan41.github.io/zoeira-car/termos.html';
 
   // ─────────────────────────────────────────────
   // Paginação / Cache

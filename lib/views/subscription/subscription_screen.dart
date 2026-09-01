@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:zoeira_car/controllers/subscription_controller.dart';
 import 'package:zoeira_car/models/subscription_model.dart';
 import 'package:zoeira_car/theme/app_colors.dart';
+import 'package:zoeira_car/utils/app_constants.dart';
 import 'package:zoeira_car/views/subscription/widgets/plan_card.dart';
 import 'package:zoeira_car/views/subscription/widgets/active_subscription_card.dart';
 import 'package:zoeira_car/views/subscription/widgets/benefits_list.dart';
@@ -253,7 +255,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextButton(
-              onPressed: () {},
+              onPressed: () => launchUrl(
+                Uri.parse(AppConstants.privacyPolicyUrl),
+                mode: LaunchMode.externalApplication,
+              ),
               style: TextButton.styleFrom(
                 minimumSize: Size.zero,
                 padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -266,7 +271,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             ),
             Text(' · ', style: style),
             TextButton(
-              onPressed: () {},
+              onPressed: () => launchUrl(
+                Uri.parse(AppConstants.termsOfServiceUrl),
+                mode: LaunchMode.externalApplication,
+              ),
               style: TextButton.styleFrom(
                 minimumSize: Size.zero,
                 padding: const EdgeInsets.symmetric(horizontal: 4),
