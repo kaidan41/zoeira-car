@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <!-- Billing (Google Play In-App Purchases) -->
     <uses-permission android:name="com.android.vending.BILLING"/>
+    <!-- Android 13+: declara que o app NAO usa ID de publicidade -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"
+        tools:node="remove"/>
 
     <application
         android:label="Zoeira Car"
