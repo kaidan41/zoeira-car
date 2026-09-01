@@ -32,7 +32,15 @@ class AuthController extends ChangeNotifier {
   User? get user => _user;
   String? get errorMessage => _errorMessage;
 
+  static const List<String> adminEmails = [
+    'mltecno@hotmail.com',
+    'zoeiracarcontato@gmail.com',
+  ];
+
   bool get isLoggedIn => _user != null;
+  bool get isAdmin =>
+      _user != null &&
+      adminEmails.contains(_user!.email?.toLowerCase().trim());
   bool get isLoading => _state == AuthState.loading;
   bool get hasError => _state == AuthState.error;
 

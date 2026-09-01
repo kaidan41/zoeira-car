@@ -43,7 +43,10 @@ class SubscriptionController extends ChangeNotifier {
   bool get isLoading => _state == SubscriptionLoadState.loading;
   bool get isPurchasing => _state == SubscriptionLoadState.purchasing;
   bool get isRestoring => _state == SubscriptionLoadState.restoring;
-  bool get isSubscriber => _subscription?.isValid ?? false;
+  bool get isSubscriber {
+    if (_auth?.isAdmin ?? false) return true;
+    return _subscription?.isValid ?? false;
+  }
   bool get isCreditUnlocking => _creditUnlocking;
   bool get isConsultaPurchasing => _consultaPurchasing;
 

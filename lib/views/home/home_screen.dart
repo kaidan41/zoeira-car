@@ -313,9 +313,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        sub.isSubscriber
-                            ? 'Assinante Capivara 🦫'
-                            : 'Conta Ativa na Garagem 🚗',
+                        auth.isAdmin
+                            ? 'Administrador / Acesso VIP 👑'
+                            : (sub.isSubscriber
+                                ? 'Assinante Capivara 🦫'
+                                : 'Conta Ativa na Garagem 🚗'),
                         style: TextStyle(
                           color: sub.isSubscriber
                               ? AppColors.primary
