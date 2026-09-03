@@ -56,6 +56,13 @@ class MainScaffold extends StatelessWidget {
             label: 'Buscar Nave',
           ),
           NavigationDestination(
+            icon: Icon(Icons.category_outlined,
+                color: AppColors.textSecondary),
+            selectedIcon: Icon(Icons.category_rounded,
+                color: AppColors.primary),
+            label: 'Categorias',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.workspace_premium_outlined,
                 color: AppColors.textSecondary),
             selectedIcon: Icon(Icons.workspace_premium_rounded,
@@ -69,7 +76,8 @@ class MainScaffold extends StatelessWidget {
 
   int _indexFromLocation(String location) {
     if (location.startsWith(AppRoutes.search)) return 1;
-    if (location.startsWith(AppRoutes.subscription)) return 2;
+    if (location.startsWith(AppRoutes.categories)) return 2;
+    if (location.startsWith(AppRoutes.subscription)) return 3;
     return 0; // home
   }
 
@@ -82,6 +90,9 @@ class MainScaffold extends StatelessWidget {
         context.go(AppRoutes.search);
         break;
       case 2:
+        context.go(AppRoutes.categories);
+        break;
+      case 3:
         context.go(AppRoutes.subscription);
         break;
     }

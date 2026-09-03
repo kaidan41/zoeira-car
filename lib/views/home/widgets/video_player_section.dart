@@ -270,7 +270,8 @@ class _VideoPlayerSectionState extends State<VideoPlayerSection> {
 
               const SizedBox(height: 12),
 
-              // Assistir no YouTube (App nativo)
+              // Assistir no YouTube (App nativo) — os botões de curtir e
+              // inscrever ficam no próprio player embutido do YouTube.
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(

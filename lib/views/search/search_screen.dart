@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:zoeira_car/controllers/search_controller.dart';
 import 'package:zoeira_car/controllers/subscription_controller.dart';
 import 'package:zoeira_car/routes/app_routes.dart';
@@ -181,32 +182,90 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildEmptyState(String query) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('🔍', style: TextStyle(fontSize: 56)),
-            const SizedBox(height: 16),
-            Text(
-              'Nave "$query" não encontrada',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-              textAlign: TextAlign.center,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(height: 40),
+          const Text('🔍', style: TextStyle(fontSize: 56)),
+          const SizedBox(height: 16),
+          Text(
+            'Nave "$query" não encontrada',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tenta outro modelo ou verifique a escrita. A gente ainda não catalogou todo mundo!',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          // Botão de solicitar
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.cardBorder),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Tenta outro modelo ou verifique a escrita. A gente ainda não catalogou todo mundo!',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const Text('✉️', style: TextStyle(fontSize: 22)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Quer que a gente catalogue essa nave?',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Manda o modelo pra gente e colocamos no raio-x!',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      final uri = Uri(
+                        scheme: 'mailto',
+                        path: 'zoeiracarcontato@gmail.com',
+                        queryParameters: {
+                          'subject': 'Solicitar inclusão de nave no Zoeira Car',
+                          'body':
+                              'Olá, gostaria de solicitar a inclusão do seguinte veículo:\n\nMarca/Modelo buscado: $query\n\nObrigado!',
+                        },
+                      );
+                      launchUrl(uri);
+                    },
+                    icon: const Icon(Icons.email_outlined, size: 18),
+                    label: const Text('Solicitar inclusão'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
-              textAlign: TextAlign.center,
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

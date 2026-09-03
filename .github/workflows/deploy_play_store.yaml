@@ -51,19 +51,43 @@ jobs:
         run: |
           sed -i '/org.gradle.java.home/d' android/gradle.properties || true
 
-      - name: Decodificar Keystore
+      - name: Validar secrets de assinatura e Play Store
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          PLAY_JSON: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+          set -e
+          [ -n "$KEYSTORE_B64" ] || { echo "::error::Secret KEYSTORE_BASE64 ausente. Rode scripts/configurar_secrets_ci.ps1 para gerar os valores e adicione no GitHub (Settings > Secrets)."; exit 1; }
+          [ -n "$STORE_PASS" ] || { echo "::error::Secret KEY_STORE_PASSWORD ausente."; exit 1; }
+          [ -n "$KEY_PASS" ] || { echo "::error::Secret KEY_PASSWORD ausente."; exit 1; }
+          [ -n "$KEY_ALIAS" ] || { echo "::error::Secret KEY_ALIAS ausente (esperado: zoeira_car)."; exit 1; }
+          [ -n "$PLAY_JSON" ] || { echo "::error::Secret PLAY_STORE_SERVICE_ACCOUNT_JSON ausente. Crie a conta de serviço no Play Console > Configuração > Acesso à API e cole o JSON."; exit 1; }
+          echo "Todos os secrets estão configurados ✓"
 
-      - name: Criar key.properties
+      - name: Decodificar Keystore e Configurar Assinatura
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
+          echo "$KEYSTORE_B64" | tr -d '\r\n ' | base64 -d > android/app/upload-keystore.jks
+          ls -la android/app/upload-keystore.jks
           cat > android/key.properties << EOF
-          storePassword=${{ secrets.KEY_STORE_PASSWORD }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
+          storePassword=$STORE_PASS
+          keyPassword=$KEY_PASS
+          keyAlias=$KEY_ALIAS
           storeFile=upload-keystore.jks
           storeType=pkcs12
           EOF
+          # Falha rápida com mensagem clara se o keystore estiver inválido
+          keytool -list -keystore android/app/upload-keystore.jks \
+            -storetype pkcs12 -storepass "$STORE_PASS" -alias "$KEY_ALIAS" -noprompt >/dev/null 2>&1 \
+            || { echo "::error::Keystore inválido ou alias errado. Confira KEYSTORE_BASE64 (base64 de android/app/zoeira_car.jks) e KEY_ALIAS (esperado: zoeira_car)."; exit 1; }
+          echo "Keystore validado ✓"
 
       - name: Analisar código
         run: flutter analyze --no-fatal-infos

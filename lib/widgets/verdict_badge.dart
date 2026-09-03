@@ -38,13 +38,19 @@ class VerdictBadge extends StatelessWidget {
             style: TextStyle(fontSize: large ? 18 : 14),
           ),
           SizedBox(width: large ? 8 : 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Montserrat',
-              fontSize: large ? 14 : 12,
-              fontWeight: FontWeight.w800,
-              color: color,
+          // Flexible + ellipsis para nunca estourar a largura do card
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+              style: TextStyle(
+                fontFamily: 'Montserrat',
+                fontSize: large ? 14 : 12,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
             ),
           ),
         ],

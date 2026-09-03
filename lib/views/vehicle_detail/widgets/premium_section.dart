@@ -9,6 +9,10 @@ class PremiumSection extends StatelessWidget {
   final bool isLoadingFipe;
   final String? fipeError;
   final VoidCallback onRefreshFipe;
+  final List<int> fipeYears;
+  final int? selectedFipeYear;
+  final String? fipeReference;
+  final ValueChanged<int>? onSelectFipeYear;
 
   const PremiumSection({
     super.key,
@@ -16,6 +20,10 @@ class PremiumSection extends StatelessWidget {
     required this.isLoadingFipe,
     required this.onRefreshFipe,
     this.fipeError,
+    this.fipeYears = const [],
+    this.selectedFipeYear,
+    this.fipeReference,
+    this.onSelectFipeYear,
   });
 
   @override
@@ -36,6 +44,10 @@ class PremiumSection extends StatelessWidget {
             isLoading: isLoadingFipe,
             error: fipeError,
             onRefresh: onRefreshFipe,
+            years: fipeYears,
+            selectedYear: selectedFipeYear,
+            reference: fipeReference,
+            onSelectYear: onSelectFipeYear,
           ),
 
           const SizedBox(height: 20),
@@ -149,12 +161,20 @@ class _FipeCard extends StatelessWidget {
   final bool isLoading;
   final String? error;
   final VoidCallback onRefresh;
+  final List<int> years;
+  final int? selectedYear;
+  final String? reference;
+  final ValueChanged<int>? onSelectYear;
 
   const _FipeCard({
     required this.vehicle,
     required this.isLoading,
     required this.onRefresh,
     this.error,
+    this.years = const [],
+    this.selectedYear,
+    this.reference,
+    this.onSelectYear,
   });
 
   @override
@@ -214,6 +234,48 @@ class _FipeCard extends StatelessWidget {
 
           const SizedBox(height: 12),
 
+          // Seletor de ano do veículo na tabela FIPE
+          if (years.isNotEmpty) ...[
+            Text(
+              'Ano do veículo:',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: years.map((y) {
+                final selected = y == selectedYear;
+                return ChoiceChip(
+                  label: Text(
+                    y == 0 ? 'Zero KM' : '$y',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: selected ? Colors.black : AppColors.textPrimary,
+                    ),
+                  ),
+                  selected: selected,
+                  selectedColor: AppColors.primary,
+                  backgroundColor: AppColors.cardBackground,
+                  side: BorderSide(
+                    color: selected
+                        ? AppColors.primary
+                        : AppColors.cardBorder,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  onSelected: onSelectYear == null
+                      ? null
+                      : (_) => onSelectYear!(y),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 12),
+          ],
+
           if (error != null)
             Text(error!,
                 style: TextStyle(color: AppColors.verdictRed, fontSize: 12))
@@ -226,7 +288,14 @@ class _FipeCard extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
             ),
-            if (vehicle.fipeUpdatedAt != null)
+            if (reference != null && reference!.isNotEmpty)
+              Text(
+                'Referência: $reference',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+              )
+            else if (vehicle.fipeUpdatedAt != null)
               Text(
                 'Atualizado em ${DateFormat('dd/MM/yyyy').format(vehicle.fipeUpdatedAt!)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(

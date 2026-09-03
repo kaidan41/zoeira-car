@@ -100,6 +100,10 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                       isLoadingFipe: ctrl.loadingFipe,
                       fipeError: ctrl.fipeError,
                       onRefreshFipe: ctrl.refreshFipePrice,
+                      fipeYears: ctrl.fipeYears,
+                      selectedFipeYear: ctrl.selectedFipeYear,
+                      fipeReference: ctrl.fipeReference,
+                      onSelectFipeYear: ctrl.selectFipeYear,
                     )
                   : PaywallCard(
                       isCreditUnlocking: subCtrl.isCreditUnlocking,

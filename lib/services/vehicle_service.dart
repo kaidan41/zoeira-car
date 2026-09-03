@@ -60,6 +60,27 @@ class VehicleService {
     return VehicleModel.fromFirestore(doc);
   }
 
+  /// Busca veículos por veredito (para tela de categorias).
+  /// Sem orderBy no Firestore de propósito: evita precisar de índice composto
+  /// (verdict + brand_model_lower); a ordenação é feita no cliente.
+  Future<List<VehicleModel>> getVehiclesByVerdict(String verdictId,
+      {int limit = 50}) async {
+    final snapshot = await _firestore
+        .collection(_collection)
+        .where('verdict', isEqualTo: verdictId)
+        .limit(limit)
+        .get();
+
+    final vehicles = snapshot.docs
+        .map((doc) => VehicleModel.fromFirestore(doc))
+        .toList();
+
+    vehicles.sort((a, b) =>
+        '${a.brand} ${a.model} ${a.version}'.toLowerCase().compareTo(
+            '${b.brand} ${b.model} ${b.version}'.toLowerCase()));
+    return vehicles;
+  }
+
   /// Busca os veículos em destaque: os mais buscados (mais views).
   /// Fallback para `featured == true` se ainda não houver views.
   Future<List<VehicleModel>> getFeaturedVehicles({int limit = 6}) async {
@@ -165,28 +186,102 @@ class VehicleService {
 
   /// Busca preço FIPE direto pelo código FIPE (ex: "001004-9") usando BrasilAPI
   Future<FipeResult?> getFipePriceByCode(String fipeCode) async {
-    final cleanCode = fipeCode.replaceAll(RegExp(r'[^0-9\-]'), '').trim();
-    if (cleanCode.isEmpty) return null;
+    final all = await getFipePricesByCode(fipeCode);
+    if (all.isEmpty) return null;
+    return all.first;
+  }
 
+  /// Busca TODOS os preços FIPE de um código (um por ano/modelo de combustível),
+  /// usado pelo seletor de ano da tabela FIPE.
+  /// BrasilAPI primeiro; se estiver fora do ar, cai na Parallelum v2.
+  Future<List<FipeResult>> getFipePricesByCode(String fipeCode) async {
+    final cleanCode = fipeCode.replaceAll(RegExp(r'[^0-9\-]'), '').trim();
+    if (cleanCode.isEmpty) return [];
+
+    // 1. BrasilAPI (retorna todos os anos de uma vez)
     try {
       final url = 'https://brasilapi.com.br/api/fipe/preco/v1/$cleanCode';
       final response = await _client.get(
         Uri.parse(url),
         headers: {'Accept': 'application/json'},
-      ).timeout(const Duration(seconds: 5));
+      ).timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        if (decoded is List && decoded.isNotEmpty) {
-          return FipeResult.fromJson(decoded.first as Map<String, dynamic>);
+        if (decoded is List) {
+          final list = decoded
+              .whereType<Map<String, dynamic>>()
+              .map(FipeResult.fromJson)
+              .toList();
+          if (list.isNotEmpty) return list;
         } else if (decoded is Map<String, dynamic>) {
-          return FipeResult.fromJson(decoded);
+          return [FipeResult.fromJson(decoded)];
         }
       }
     } catch (_) {
-      // Fallback em caso de erro na BrasilAPI
+      // BrasilAPI fora do ar — tenta o fallback
     }
-    return null;
+
+    // 2. Fallback Parallelum v2 (fipe.parallelum.com.br)
+    try {
+      return await _fetchFipeParallelumV2(cleanCode);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Fallback: Parallelum v2 por código FIPE.
+  /// Fluxo: pega a referência mais recente, lista os anos e busca o preço
+  /// de cada ano em paralelo (limite de 15 anos para não estourar a API).
+  Future<List<FipeResult>> _fetchFipeParallelumV2(String fipeCode) async {
+    const v2Base = 'https://fipe.parallelum.com.br/api/v2';
+
+    // Referência mais recente
+    final refRes = await _client
+        .get(Uri.parse('$v2Base/references'))
+        .timeout(const Duration(seconds: 8));
+    final refs = jsonDecode(refRes.body) as List<dynamic>;
+    final refCode = refs.isEmpty ? '' : (refs.first['code'] as String? ?? '');
+
+    final refQuery = refCode.isEmpty ? '' : '?reference=$refCode';
+
+    // Anos disponíveis para o código
+    final yearsRes = await _client
+        .get(Uri.parse('$v2Base/cars/$fipeCode/years$refQuery'))
+        .timeout(const Duration(seconds: 8));
+    if (yearsRes.statusCode != 200) return [];
+    final years = jsonDecode(yearsRes.body) as List<dynamic>;
+
+    // Busca o preço de cada ano em paralelo
+    final futures = years.take(15).map((y) async {
+      final yearCode = (y as Map<String, dynamic>)['code'] as String? ?? '';
+      if (yearCode.isEmpty) return null;
+      try {
+        final res = await _client
+            .get(Uri.parse('$v2Base/cars/$fipeCode/years/$yearCode$refQuery'))
+            .timeout(const Duration(seconds: 8));
+        if (res.statusCode != 200) return null;
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        return FipeResult(
+          valor: (data['price'] ?? '').toString(),
+          marca: (data['brand'] ?? '').toString(),
+          modelo: (data['model'] ?? '').toString(),
+          anoModelo: (data['modelYear'] ?? '').toString(),
+          combustivel: (data['fuel'] ?? '').toString(),
+          codigoFipe: (data['codeFipe'] ?? '').toString(),
+          mesReferencia: (data['referenceMonth'] ?? '').toString(),
+          tipoVeiculo: (data['vehicleType'] ?? '').toString(),
+          siglaCombustivel: (data['fuelAcronym'] ?? '').toString(),
+        );
+      } catch (_) {
+        return null;
+      }
+    });
+
+    final results = (await Future.wait(futures))
+        .whereType<FipeResult>()
+        .toList();
+    return results;
   }
 
   void _assertOk(http.Response response, String context) {
@@ -228,6 +323,9 @@ class FipeResult {
     final digits = valor.replaceAll(RegExp(r'[^0-9,]'), '').replaceAll(',', '.');
     return double.tryParse(digits) ?? 0.0;
   }
+
+  /// Ano do modelo como inteiro (ex: "2022" -> 2022)
+  int get anoModeloInt => int.tryParse(anoModelo) ?? 0;
 
   factory FipeResult.fromJson(Map<String, dynamic> json) {
     return FipeResult(
