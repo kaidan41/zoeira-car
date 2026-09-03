@@ -21,6 +21,10 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Instalar dependências (firebase-admin)
+        working-directory: scripts
+        run: npm ci
+
       - name: Gerar lote de imagens (Pollinations)
         env:
           BATCH: ${{ vars.IMG_BATCH || '12' }}
