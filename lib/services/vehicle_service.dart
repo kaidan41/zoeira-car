@@ -401,8 +401,13 @@ class FipeResult {
     return double.tryParse(digits) ?? 0.0;
   }
 
-  /// Ano do modelo como inteiro (ex: "2022" -> 2022)
-  int get anoModeloInt => int.tryParse(anoModelo) ?? 0;
+  /// Ano do modelo como inteiro (ex: "2022" -> 2022).
+  /// Código 32000 é o marcador FIPE de "Zero KM" — normaliza para 0
+  /// para a UI exibir "Zero KM" em vez do número cru.
+  int get anoModeloInt {
+    final parsed = int.tryParse(anoModelo) ?? 0;
+    return parsed >= 32000 ? 0 : parsed;
+  }
 
   factory FipeResult.fromJson(Map<String, dynamic> json) {
     return FipeResult(

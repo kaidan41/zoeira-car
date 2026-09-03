@@ -3,7 +3,7 @@ import 'package:zoeira_car/models/subscription_model.dart';
 import 'package:zoeira_car/theme/app_colors.dart';
 
 /// Card de paywall zoeiro exibido para quem ainda não pode ver o raio-x completo.
-/// Oferece 2 caminhos: consulta avulsa (R$ 5) e assinatura.
+/// Oferece 2 caminhos: consulta avulsa (R$ 7,90) e assinatura (R$ 14,99/mês).
 class PaywallCard extends StatelessWidget {
   final bool isCreditUnlocking;
   final bool isConsultaPurchasing;
@@ -69,7 +69,7 @@ class PaywallCard extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // ── 1) Consulta avulsa R$ 5 ──
+                  // ── 1) Consulta avulsa R$ 7,90 ──
                   _SingleActionButton(
                     credits: credits,
                     loading: isCreditUnlocking || isConsultaPurchasing,
@@ -137,7 +137,7 @@ class PaywallCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// Botão: consulta avulsa R$ 5
+// Botão: consulta avulsa R$ 7,90
 // ─────────────────────────────────────────────
 
 class _SingleActionButton extends StatelessWidget {

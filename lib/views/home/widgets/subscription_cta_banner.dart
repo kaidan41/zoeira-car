@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zoeira_car/models/subscription_model.dart';
 import 'package:zoeira_car/theme/app_colors.dart';
 
 class SubscriptionCtaBanner extends StatelessWidget {
@@ -59,7 +60,7 @@ class SubscriptionCtaBanner extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'Veja o raio-x completo de qualquer nave por só R\$ 9,90/mês!',
+                    'Por ${ConsultationPlan.price} você desbloqueia 1 nave — ou ${SubscriptionPlan.price} para TODAS!',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.black87,
                         ),

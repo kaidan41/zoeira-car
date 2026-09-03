@@ -139,7 +139,7 @@ class SubscriptionModel {
 class SubscriptionPlan {
   static const String productId = 'zoeira_car_mensal';
   static const String displayName = 'Puxe agora a Capivara da Sua Nave';
-  static const String price = 'R\$ 14,90/mês';
+  static const String price = 'R\$ 14,99/mês';
   static const String description =
       'Destrave o raio-x completo de qualquer nave!';
 

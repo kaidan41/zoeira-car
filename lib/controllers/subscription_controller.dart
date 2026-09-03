@@ -119,10 +119,10 @@ class SubscriptionController extends ChangeNotifier {
   }
 
   // ─────────────────────────────────────────────
-  // Consulta avulsa (R$ 5)
+  // Consulta avulsa (R$ 7,90)
   // ─────────────────────────────────────────────
 
-  /// Desbloqueia 1 veículo por R$ 5: usa um crédito existente ou
+  /// Desbloqueia 1 veículo por R$ 7,90: usa um crédito existente ou
   /// inicia a compra da consulta avulsa na Play Store.
   Future<bool> unlockOne(String vehicleId) async {
     if (_auth == null || !_auth!.isLoggedIn) {
