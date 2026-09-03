@@ -41,8 +41,10 @@ jobs:
             echo "$FIREBASE_SERVICE_ACCOUNT" | base64 -d > scripts/serviceAccountKey.json 2>/dev/null || echo "$FIREBASE_SERVICE_ACCOUNT" > scripts/serviceAccountKey.json
             # Carros que só existem no Firestore (agente IA) sem imagem
             node scripts/12_gerar_imagens_firestore.js || echo "gerador firestore falhou"
-            node scripts/5_popular_veiculos.js || echo "seed falhou (sem credencial?)"
-            # Aponta thumbnails vazios/externos p/ assets locais (cobre carros da IA)
+            # Aponta thumbnails vazios/externos p/ assets locais (cobre carros da IA).
+            # NOTA: não roda o 5_popular_veiculos.js aqui — o sync do catálogo é
+            # responsabilidade de quem edita o seed; rodá-lo com seed defasado
+            # sobrescreve dados novos (ex.: fipe_code) no Firestore.
             node scripts/11_sync_thumbnails.js || echo "sync thumbnails falhou"
             rm -f scripts/serviceAccountKey.json
           else
