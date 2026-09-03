@@ -51,12 +51,32 @@ jobs:
 
       - name: Commitar lote
         run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -A
-            git commit -m "chore: gera lote de imagens IA (10/dia) + thumbnails"
-            git push
-          else
+          if [ -z "$(git status --porcelain)" ]; then
             echo "Nada para commitar"
+            exit 0
           fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: gera lote de imagens IA + thumbnails" || true
+          # O repo pode ter avançado enquanto gerávamos: sincroniza e tenta de novo
+          for i in 1 2 3; do
+            if git push origin main 2>/dev/null; then
+              echo "Push OK na tentativa $i"
+              exit 0
+            fi
+            echo "Push falhou (tentativa $i/3), sincronizando com origin/main..."
+            git fetch origin
+            git rebase origin/main --autostash 2>/dev/null || {
+              echo "Conflito no rebase, abortando e tentando stash..."
+              git rebase --abort 2>/dev/null || true
+              git stash 2>/dev/null || true
+              git reset --hard origin/main
+              git stash pop 2>/dev/null || true
+              git add -A
+              git commit -m "chore: gera lote de imagens IA + thumbnails" || true
+            }
+            sleep 3
+          done
+          # última tentativa após sincronização
+          git push origin main || exit 1
