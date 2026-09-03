@@ -40,6 +40,7 @@ dependencies:
 
   # Icones
   cupertino_icons: ^1.0.6
+  android_intent_plus: 4.0.0
 
 dev_dependencies:
   flutter_test:

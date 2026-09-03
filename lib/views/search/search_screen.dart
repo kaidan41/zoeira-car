@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:zoeira_car/controllers/search_controller.dart';
 import 'package:zoeira_car/controllers/subscription_controller.dart';
 import 'package:zoeira_car/routes/app_routes.dart';
 import 'package:zoeira_car/theme/app_colors.dart';
+import 'package:zoeira_car/utils/email_launcher.dart';
 import 'package:zoeira_car/views/search/widgets/search_bar_widget.dart';
 import 'package:zoeira_car/views/search/widgets/search_results_list.dart';
 import 'package:zoeira_car/views/search/widgets/search_idle_state.dart';
@@ -244,16 +244,11 @@ class _SearchScreenState extends State<SearchScreen> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      final uri = Uri(
-                        scheme: 'mailto',
-                        path: 'zoeiracarcontato@gmail.com',
-                        queryParameters: {
-                          'subject': 'Solicitar inclusão de nave no Zoeira Car',
-                          'body':
-                              'Olá, gostaria de solicitar a inclusão do seguinte veículo:\n\nMarca/Modelo buscado: $query\n\nObrigado!',
-                        },
+                      launchRequestEmail(
+                        subject: 'Solicitar inclusão de nave no Zoeira Car',
+                        body:
+                            'Olá, gostaria de solicitar a inclusão do seguinte veículo:\n\nMarca/Modelo buscado: $query\n\nObrigado!',
                       );
-                      launchUrl(uri);
                     },
                     icon: const Icon(Icons.email_outlined, size: 18),
                     label: const Text('Solicitar inclusão'),

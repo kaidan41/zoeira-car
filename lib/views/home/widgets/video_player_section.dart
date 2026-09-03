@@ -99,6 +99,21 @@ class _VideoPlayerSectionState extends State<VideoPlayerSection> {
                           position: absolute !important;
                           top: -9999px !important;
                         }
+                        html,
+                        body {
+                          margin: 0 !important;
+                          padding: 0 !important;
+                          background: #000 !important;
+                        }
+                        ytm-player-page,
+                        #player,
+                        .html5-video-player {
+                          width: 100% !important;
+                          max-width: 100% !important;
+                        }
+                        video {
+                          object-fit: cover !important;
+                        }
                       `;
                       (document.head || document.documentElement).appendChild(style);
                     }
@@ -140,6 +155,21 @@ class _VideoPlayerSectionState extends State<VideoPlayerSection> {
                           pointer-events: none !important;
                           position: absolute !important;
                           top: -9999px !important;
+                        }
+                        html,
+                        body {
+                          margin: 0 !important;
+                          padding: 0 !important;
+                          background: #000 !important;
+                        }
+                        ytm-player-page,
+                        #player,
+                        .html5-video-player {
+                          width: 100% !important;
+                          max-width: 100% !important;
+                        }
+                        video {
+                          object-fit: cover !important;
                         }
                       `;
                       (document.head || document.documentElement).appendChild(style);
@@ -270,20 +300,44 @@ class _VideoPlayerSectionState extends State<VideoPlayerSection> {
 
               const SizedBox(height: 12),
 
-              // Assistir no YouTube (App nativo) — os botões de curtir e
-              // inscrever ficam no próprio player embutido do YouTube.
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _openInYouTubeApp(),
-                  icon: const Icon(Icons.play_circle_outline_rounded),
-                  label: const Text('Assistir no YouTube'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+              // Ações nativas: curtir e assistir abrem o vídeo EXATO do
+              // ZoeiraCar no app do YouTube (o like dentro do player embutido
+              // exige login e pode desviar para canais aleatórios).
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _openInYouTubeApp(),
+                      icon: const Icon(Icons.thumb_up_alt_outlined, size: 16),
+                      label: const Text('Curtir',
+                          style: TextStyle(fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textPrimary,
+                        side: const BorderSide(color: AppColors.cardBorder),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 8),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _openInYouTubeApp(),
+                      icon: const Icon(Icons.play_circle_outline_rounded,
+                          size: 16),
+                      label: const Text('Assistir no YouTube',
+                          style: TextStyle(fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 8),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

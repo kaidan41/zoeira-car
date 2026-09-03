@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:zoeira_car/theme/app_colors.dart';
+import 'package:zoeira_car/utils/email_launcher.dart';
 
 /// Exibe sugestões de busca e o veredito explicado quando não há query
 class SearchIdleState extends StatelessWidget {
@@ -259,16 +259,11 @@ class _RequestCarCard extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () {
-                final uri = Uri(
-                  scheme: 'mailto',
-                  path: 'zoeiracarcontato@gmail.com',
-                  queryParameters: {
-                    'subject': 'Solicitar inclusão de nave no Zoeira Car',
-                    'body':
-                        'Olá, gostaria de solicitar a inclusão do seguinte veículo:\n\nMarca: \nModelo: \nAno: \n\nObrigado!',
-                  },
+                launchRequestEmail(
+                  subject: 'Solicitar inclusão de nave no Zoeira Car',
+                  body:
+                      'Olá, gostaria de solicitar a inclusão do seguinte veículo:\n\nMarca: \nModelo: \nAno: \n\nObrigado!',
                 );
-                launchUrl(uri);
               },
               icon: const Icon(Icons.email_outlined, size: 18),
               label: const Text('Enviar solicitação'),
