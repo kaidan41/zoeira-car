@@ -212,6 +212,62 @@ class VehicleService {
     return all.first;
   }
 
+  /// Converte o cache do Firestore (fipe_prices por ano) em FipeResults,
+  /// SEM consultar a API. Retorna lista vazia se não houver cache.
+  /// Usado pelo app para exibir a FIPE do nosso banco primeiro.
+  List<FipeResult> fipeResultsFromCache(VehicleModel vehicle) {
+    final prices = vehicle.fipePrices;
+    if (prices == null || prices.isEmpty) return const [];
+
+    final ref = vehicle.fipeReference ?? '';
+    final list = prices.entries.map((e) {
+      return FipeResult(
+        valor: e.value.toStringAsFixed(2),
+        marca: vehicle.brand,
+        modelo: vehicle.model,
+        anoModelo: '${e.key}',
+        combustivel: '',
+        codigoFipe: vehicle.fipeCode ?? '',
+        mesReferencia: ref,
+        tipoVeiculo: '',
+        siglaCombustivel: '',
+      );
+    }).toList();
+    list.sort((a, b) => b.anoModeloInt.compareTo(a.anoModeloInt));
+    return list;
+  }
+
+  /// Salva o resultado da FIPE no documento do veículo (cache para o app
+  /// não depender da API). Chamado pela Action semanal e pelo app quando
+  /// consulta a API em primeiro uso.
+  Future<void> saveFipeCache(
+      String vehicleId, List<FipeResult> results) async {
+    if (results.isEmpty) return;
+
+    final map = <String, double>{};
+    var ref = '';
+    for (final r in results) {
+      final ano = r.anoModeloInt;
+      if (ano > 1950 && ano < 32000 && r.valorNumerico > 0) {
+        map['$ano'] = r.valorNumerico;
+      }
+      if (ref.isEmpty && r.mesReferencia.isNotEmpty) {
+        ref = r.mesReferencia;
+      }
+    }
+    if (map.isEmpty) return;
+
+    try {
+      await _firestore.collection(_collection).doc(vehicleId).update({
+        'fipe_prices': map,
+        'fipe_reference': ref,
+        'fipe_updated_at': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {
+      // documento pode não existir ou estar offline — cache fica só local
+    }
+  }
+
   /// Busca TODOS os preços FIPE de um código (um por ano/modelo de combustível),
   /// usado pelo seletor de ano da tabela FIPE.
   /// BrasilAPI primeiro; se estiver fora do ar, cai na Parallelum v2.

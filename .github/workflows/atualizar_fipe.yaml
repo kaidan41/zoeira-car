@@ -1,0 +1,41 @@
+name: Atualizar Cache FIPE (semanal)
+
+on:
+  schedule:
+    # Segunda-feira 05:00 UTC = 02:00 (São Paulo) — a FIPE muda 1x/mês
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sincronizar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checar repositório
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: scripts
+        run: npm ci
+
+      - name: Verificar secret
+        env:
+          SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          test -n "$SA_KEY" || { echo "❌ Faltando secret: FIREBASE_SERVICE_ACCOUNT"; exit 1; }
+
+      - name: Sincronizar FIPE no Firestore
+        working-directory: scripts
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          MAX_CODES: ${{ vars.FIPE_MAX_CODES || '100' }}
+        run: node 13_atualizar_fipe.js

@@ -105,6 +105,8 @@ class VehicleModel {
   final String? fipeCode; // Código FIPE para busca
   final double? fipePrice; // Preço FIPE atualizado
   final DateTime? fipeUpdatedAt;
+  final Map<int, double>? fipePrices; // Cache: ano do modelo -> preço (Firestore)
+  final String? fipeReference; // Referência do cache (ex: "setembro/2026")
 
   // Métricas
   final int views;
@@ -134,6 +136,8 @@ class VehicleModel {
     this.fipeCode,
     this.fipePrice,
     this.fipeUpdatedAt,
+    this.fipePrices,
+    this.fipeReference,
     this.views = 0,
     this.createdAt,
     this.updatedAt,
@@ -170,6 +174,8 @@ class VehicleModel {
       fipeCode: data['fipe_code'],
       fipePrice: (data['fipe_price'] as num?)?.toDouble(),
       fipeUpdatedAt: (data['fipe_updated_at'] as Timestamp?)?.toDate(),
+      fipePrices: _fipePricesFromMap(data['fipe_prices']),
+      fipeReference: data['fipe_reference'],
       views: (data['views'] as num?)?.toInt() ?? 0,
       createdAt: (data['created_at'] as Timestamp?)?.toDate(),
       updatedAt: (data['updated_at'] as Timestamp?)?.toDate(),
@@ -199,6 +205,8 @@ class VehicleModel {
       'fipe_price': fipePrice,
       'fipe_updated_at':
           fipeUpdatedAt != null ? Timestamp.fromDate(fipeUpdatedAt!) : null,
+      'fipe_prices': fipePrices?.map((k, v) => MapEntry('$k', v)),
+      'fipe_reference': fipeReference,
       'created_at':
           createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
       'updated_at': FieldValue.serverTimestamp(),
@@ -241,6 +249,8 @@ class VehicleModel {
     String? fipeCode,
     double? fipePrice,
     DateTime? fipeUpdatedAt,
+    Map<int, double>? fipePrices,
+    String? fipeReference,
     int? views,
   }) {
     return VehicleModel(
@@ -264,7 +274,24 @@ class VehicleModel {
       fipeCode: fipeCode ?? this.fipeCode,
       fipePrice: fipePrice ?? this.fipePrice,
       fipeUpdatedAt: fipeUpdatedAt ?? this.fipeUpdatedAt,
+      fipePrices: fipePrices ?? this.fipePrices,
+      fipeReference: fipeReference ?? this.fipeReference,
       views: views ?? this.views,
     );
+  }
+
+  /// Converte o mapa `fipe_prices` do Firestore ({'2020': 45000.0}) para
+  /// Map<int, double>. Ignora valores inválidos e o "Zero KM" (32000).
+  static Map<int, double>? _fipePricesFromMap(dynamic raw) {
+    if (raw is! Map) return null;
+    final out = <int, double>{};
+    raw.forEach((key, value) {
+      final ano = int.tryParse('$key');
+      final valor = (value is num) ? value.toDouble() : double.tryParse('$value');
+      if (ano != null && ano > 1950 && ano < 32000 && valor != null && valor > 0) {
+        out[ano] = valor;
+      }
+    });
+    return out.isEmpty ? null : out;
   }
 }

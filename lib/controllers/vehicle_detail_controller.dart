@@ -80,11 +80,34 @@ class VehicleDetailController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Carrega todos os anos FIPE (BrasilAPI) e seleciona o mais novo por padrão
+  /// Carrega os anos FIPE: primeiro do CACHE no Firestore (nosso banco, sem
+  /// depender da API) e seleciona o mais novo por padrão. Se o cache estiver
+  /// velho (>7 dias) ou vazio, consulta a API em segundo plano e salva no
+  /// Firestore — o app nunca fica travado esperando API externa.
   Future<void> _loadFipeData() async {
-    final fipeCode = _vehicle?.fipeCode;
-    if (fipeCode == null || fipeCode.isEmpty) return;
+    final vehicle = _vehicle;
+    final fipeCode = vehicle?.fipeCode;
+    if (vehicle == null || fipeCode == null || fipeCode.isEmpty) return;
 
+    // 1. Cache do Firestore (nosso banco) — instantâneo, sem API
+    final cached = _vehicleService.fipeResultsFromCache(vehicle);
+    if (cached.isNotEmpty) {
+      _fipeResults = cached;
+      _selectedFipeYear = cached.first.anoModeloInt; // já vem mais novo primeiro
+      _fipeError = null;
+      _loadingFipe = false;
+      _applySelectedFipe();
+      notifyListeners();
+
+      // Se o cache estiver velho, atualiza em segundo plano (não bloqueia a tela)
+      final updatedAt = vehicle.fipeUpdatedAt;
+      final stale = updatedAt == null ||
+          DateTime.now().difference(updatedAt).inDays > 7;
+      if (stale) _refreshFromApiAndCache();
+      return;
+    }
+
+    // 2. Sem cache: consulta a API e salva no Firestore
     _loadingFipe = true;
     _fipeError = null;
     notifyListeners();
@@ -98,6 +121,8 @@ class VehicleDetailController extends ChangeNotifier {
         _selectedFipeYear = results.map((r) => r.anoModeloInt).reduce(
             (a, b) => a > b ? a : b);
         _applySelectedFipe();
+        // Grava no Firestore para as próximas vezes não depender da API
+        _vehicleService.saveFipeCache(vehicleId, results);
       }
     } catch (_) {
       _fipeError = 'Não foi possível carregar a FIPE agora.';
@@ -105,6 +130,31 @@ class VehicleDetailController extends ChangeNotifier {
 
     _loadingFipe = false;
     notifyListeners();
+  }
+
+  /// Consulta a API e grava o resultado no Firestore (cache), sem travar a tela.
+  Future<void> _refreshFromApiAndCache() async {
+    final fipeCode = _vehicle?.fipeCode;
+    if (fipeCode == null || fipeCode.isEmpty) return;
+    try {
+      final results = await _vehicleService.getFipePricesByCode(fipeCode);
+      if (results.isEmpty) return;
+      _fipeResults = results;
+      final current = _selectedFipeYear;
+      if (results.any((r) => r.anoModeloInt == current)) {
+        _applySelectedFipe();
+      } else {
+        _selectedFipeYear = results
+            .map((r) => r.anoModeloInt)
+            .reduce((a, b) => a > b ? a : b);
+        _applySelectedFipe();
+      }
+      _fipeError = null;
+      _vehicleService.saveFipeCache(vehicleId, results);
+      notifyListeners();
+    } catch (_) {
+      // API fora do ar — mantém o cache exibido
+    }
   }
 
   /// Aplica o preço do ano selecionado ao veículo
@@ -156,6 +206,8 @@ class VehicleDetailController extends ChangeNotifier {
             _applySelectedFipe();
           }
           result = _selectedFipeResult;
+          // Salva no Firestore: próximas leituras não dependem da API
+          _vehicleService.saveFipeCache(vehicleId, results);
         }
       }
 
