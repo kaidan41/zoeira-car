@@ -1,7 +1,7 @@
 name: zoeira_car
 description: Aplicativo oficial do canal Zoeira Car - Entretenimento automotivo raiz!
 publish_to: 'none'
-version: 1.0.1+5
+version: 1.0.2+6
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
