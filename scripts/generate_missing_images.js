@@ -190,12 +190,21 @@ function getPrompt(brand, model, version) {
 }
 
 // =============================================================
-// Filtra veiculos sem imagem
+// Filtra veiculos sem imagem LOCAL ou com URL externa (Wikimedia =
+// direitos autorais). Esses entram na fila para ganhar imagem IA.
 // =============================================================
-const missing = vehicles.filter(v => !v.thumbnail_url || v.thumbnail_url === '');
-console.log(`\nEncontrados ${missing.length} sem imagem.`);
+const missing = vehicles
+  .filter(v => !v.thumbnail_url || v.thumbnail_url === '' || v.thumbnail_url.startsWith('http'))
+  // URLs externas (Wikimedia etc.) primeiro: removem o risco de copyright antes
+  .sort((a, b) => {
+    const ea = (a.thumbnail_url || '').startsWith('http') ? 0 : 1;
+    const eb = (b.thumbnail_url || '').startsWith('http') ? 0 : 1;
+    return ea - eb;
+  });
+console.log(`\nEncontrados ${missing.length} sem imagem local.`);
 
-const batch = missing.slice(0, 10);
+const BATCH = Number(process.env.BATCH || 10);
+const batch = missing.slice(0, BATCH);
 if (batch.length === 0) {
   console.log('Nenhum pendente. Todas as imagens estao geradas!');
   process.exit(0);

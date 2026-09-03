@@ -81,6 +81,27 @@ class VehicleService {
     return vehicles;
   }
 
+  /// Busca veículos por carroceria (body_type). Sem orderBy no Firestore de
+  /// propósito: evita índice composto; a ordenação é feita no cliente.
+  Future<List<VehicleModel>> getVehiclesByBodyType(List<String> bodyTypes,
+      {int limit = 200}) async {
+    if (bodyTypes.isEmpty) return [];
+    final snapshot = await _firestore
+        .collection(_collection)
+        .where('body_type', whereIn: bodyTypes)
+        .limit(limit)
+        .get();
+
+    final vehicles = snapshot.docs
+        .map((doc) => VehicleModel.fromFirestore(doc))
+        .toList();
+
+    vehicles.sort((a, b) =>
+        '${a.brand} ${a.model} ${a.version}'.toLowerCase().compareTo(
+            '${b.brand} ${b.model} ${b.version}'.toLowerCase()));
+    return vehicles;
+  }
+
   /// Busca os veículos em destaque: os mais buscados (mais views).
   /// Fallback para `featured == true` se ainda não houver views.
   Future<List<VehicleModel>> getFeaturedVehicles({int limit = 6}) async {

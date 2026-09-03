@@ -2,7 +2,8 @@ name: Gerar imagens faltantes (10/dia)
 
 on:
   schedule:
-    - cron: '0 9 * * *' # 06:00 BRT
+    - cron: '0 9 * * *'  # 06:00 BRT
+    - cron: '0 21 * * *' # 18:00 BRT
   workflow_dispatch:
 
 permissions:
@@ -21,17 +22,24 @@ jobs:
           node-version: '20'
 
       - name: Gerar lote de imagens (Pollinations)
+        env:
+          BATCH: ${{ vars.IMG_BATCH || '12' }}
         run: node scripts/generate_missing_images.js
-        timeout-minutes: 25
+        timeout-minutes: 30
 
       - name: Atualizar Firestore com thumbnails
         if: hashFiles('assets/images/vehicles/*.jpg') != ''
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          BATCH: ${{ vars.IMG_BATCH || '12' }}
         run: |
           if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
             echo "$FIREBASE_SERVICE_ACCOUNT" | base64 -d > scripts/serviceAccountKey.json 2>/dev/null || echo "$FIREBASE_SERVICE_ACCOUNT" > scripts/serviceAccountKey.json
+            # Carros que só existem no Firestore (agente IA) sem imagem
+            node scripts/12_gerar_imagens_firestore.js || echo "gerador firestore falhou"
             node scripts/5_popular_veiculos.js || echo "seed falhou (sem credencial?)"
+            # Aponta thumbnails vazios/externos p/ assets locais (cobre carros da IA)
+            node scripts/11_sync_thumbnails.js || echo "sync thumbnails falhou"
             rm -f scripts/serviceAccountKey.json
           else
             echo "Sem FIREBASE_SERVICE_ACCOUNT, pulando seed"

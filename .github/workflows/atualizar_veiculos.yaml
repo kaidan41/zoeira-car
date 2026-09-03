@@ -4,8 +4,9 @@ on:
   push:
     branches: [main]
   schedule:
-    # 09:00 UTC = 06:00 (São Paulo) — todo dia
+    # 09:00 e 21:00 UTC = 06:00 e 18:00 (São Paulo)
     - cron: '0 9 * * *'
+    - cron: '0 21 * * *'
   workflow_dispatch:
 
 permissions:
