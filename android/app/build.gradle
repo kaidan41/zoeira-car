@@ -48,7 +48,7 @@ android {
 
     defaultConfig {
         applicationId "com.zoeiracartv.app"
-        minSdk 21
+        minSdkVersion flutter.minSdkVersion
         targetSdk 36
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
@@ -93,6 +93,5 @@ dependencies {
     // Firebase BOM — gerencia versões automaticamente
     implementation platform('com.google.firebase:firebase-bom:32.7.0')
     implementation 'com.google.firebase:firebase-analytics'
-    // Billing (Play exige >= 8.0.0 em novas versões — ago/2026)
-    implementation 'com.android.billingclient:billing:8.0.0'
+    // Billing 8.0.0 vem do in_app_purchase_android 0.5.3 (requisito do Play)
 }
