@@ -24,6 +24,7 @@ class _VideoPlayerSectionState extends State<VideoPlayerSection> {
   WebViewController? _controller;
   String? _currentVideoId;
   bool _pageLoading = false;
+  double? _videoAspect; // proporção altura/largura detectada (Shorts ≈ 1,78)
 
   @override
   void didUpdateWidget(VideoPlayerSection oldWidget) {
@@ -47,6 +48,7 @@ class _VideoPlayerSectionState extends State<VideoPlayerSection> {
     if (videoId == null) return;
 
     _currentVideoId = videoId;
+    _videoAspect = null;
 
     if (_controller == null) {
       late final PlatformWebViewControllerCreationParams params;
@@ -61,6 +63,22 @@ class _VideoPlayerSectionState extends State<VideoPlayerSection> {
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(Colors.black)
         ..enableZoom(true)
+        ..addJavaScriptChannel(
+          'ZoeiraAspect',
+          onMessageReceived: (message) {
+            final dims = message.message.split('x');
+            if (dims.length == 2) {
+              final w = double.tryParse(dims[0]);
+              final h = double.tryParse(dims[1]);
+              if (w != null && h != null && w > 0 && h > 0 && mounted) {
+                final ratio = h / w;
+                if (_videoAspect != ratio) {
+                  setState(() => _videoAspect = ratio);
+                }
+              }
+            }
+          },
+        )
         ..setNavigationDelegate(
           NavigationDelegate(
             onPageStarted: (_) {
@@ -89,30 +107,41 @@ class _VideoPlayerSectionState extends State<VideoPlayerSection> {
                         [aria-label*="Open"],
                         ytm-promoted-sparkles-web-renderer,
                         .banner-image,
-                        ytm-companion-ad-renderer {
+                        ytm-companion-ad-renderer,
+                        ytm-video-description-section-renderer,
+                        ytm-comment-section-renderer,
+                        ytm-engagement-panel-section-list-renderer,
+                        ytm-slim-video-metadata-section-renderer,
+                        #below {
                           display: none !important;
                           visibility: hidden !important;
                           height: 0 !important;
                           max-height: 0 !important;
                           opacity: 0 !important;
                           pointer-events: none !important;
-                          position: absolute !important;
-                          top: -9999px !important;
                         }
                         html,
                         body {
                           margin: 0 !important;
                           padding: 0 !important;
                           background: #000 !important;
+                          overflow: hidden !important;
+                          height: 100% !important;
                         }
                         ytm-player-page,
+                        #player-container-id,
+                        .player-container,
                         #player,
-                        .html5-video-player {
-                          width: 100% !important;
-                          max-width: 100% !important;
-                        }
-                        video {
+                        .html5-video-player,
+                        .html5-video-container,
+                        video,
+                        video.html5-main-video {
+                          width: 100vw !important;
+                          height: 100vh !important;
+                          max-width: 100vw !important;
+                          max-height: 100vh !important;
                           object-fit: cover !important;
+                          object-position: center !important;
                         }
                       `;
                       (document.head || document.documentElement).appendChild(style);
@@ -146,30 +175,41 @@ class _VideoPlayerSectionState extends State<VideoPlayerSection> {
                         [aria-label*="Open"],
                         ytm-promoted-sparkles-web-renderer,
                         .banner-image,
-                        ytm-companion-ad-renderer {
+                        ytm-companion-ad-renderer,
+                        ytm-video-description-section-renderer,
+                        ytm-comment-section-renderer,
+                        ytm-engagement-panel-section-list-renderer,
+                        ytm-slim-video-metadata-section-renderer,
+                        #below {
                           display: none !important;
                           visibility: hidden !important;
                           height: 0 !important;
                           max-height: 0 !important;
                           opacity: 0 !important;
                           pointer-events: none !important;
-                          position: absolute !important;
-                          top: -9999px !important;
                         }
                         html,
                         body {
                           margin: 0 !important;
                           padding: 0 !important;
                           background: #000 !important;
+                          overflow: hidden !important;
+                          height: 100% !important;
                         }
                         ytm-player-page,
+                        #player-container-id,
+                        .player-container,
                         #player,
-                        .html5-video-player {
-                          width: 100% !important;
-                          max-width: 100% !important;
-                        }
-                        video {
+                        .html5-video-player,
+                        .html5-video-container,
+                        video,
+                        video.html5-main-video {
+                          width: 100vw !important;
+                          height: 100vh !important;
+                          max-width: 100vw !important;
+                          max-height: 100vh !important;
                           object-fit: cover !important;
+                          object-position: center !important;
                         }
                       `;
                       (document.head || document.documentElement).appendChild(style);
@@ -179,6 +219,25 @@ class _VideoPlayerSectionState extends State<VideoPlayerSection> {
                   };
                   hideIt();
                   setInterval(hideIt, 1000);
+                })();
+              ''');
+
+              // Informa as dimensões reais do vídeo (detecta Shorts verticais)
+              _controller?.runJavaScript('''
+                (function() {
+                  var last = '';
+                  var report = function() {
+                    var v = document.querySelector('video');
+                    if (!v || !v.videoWidth) return;
+                    var s = v.videoWidth + 'x' + v.videoHeight;
+                    if (s !== last) {
+                      last = s;
+                      var ch = window.ZoeiraAspect;
+                      if (ch && ch.postMessage) ch.postMessage(s);
+                    }
+                  };
+                  report();
+                  setInterval(report, 600);
                 })();
               ''');
             },
@@ -229,9 +288,12 @@ class _VideoPlayerSectionState extends State<VideoPlayerSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Player: largura total, com espaço pro vídeo 16:9 inteiro + barra do YouTube
-        SizedBox(
-          height: MediaQuery.sizeOf(context).width * 9 / 16 + 56,
+        // Player: a altura se adapta à orientação do vídeo detectada via JS —
+        // 16:9 nos vídeos longos e proporção vertical nos Shorts, sem faixas.
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+          height: _playerHeight(),
           width: double.infinity,
           child: Stack(
             fit: StackFit.expand,
@@ -344,6 +406,19 @@ class _VideoPlayerSectionState extends State<VideoPlayerSection> {
         ),
       ],
     );
+  }
+
+  /// Altura do player conforme a orientação do vídeo (detectada via JS).
+  double _playerHeight() {
+    final width = MediaQuery.sizeOf(context).width;
+    final screenH = MediaQuery.sizeOf(context).height;
+    final ratio = _videoAspect ?? (9 / 16);
+    if (ratio > 1) {
+      // Vídeo vertical (Short): ocupa a largura total com altura limitada.
+      final full = width * ratio;
+      return full.clamp(200.0, screenH * 0.85);
+    }
+    return width * ratio;
   }
 
   Future<void> _openInYouTubeApp() async {
