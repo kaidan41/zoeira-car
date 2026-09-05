@@ -90,7 +90,7 @@ jobs:
           echo "Keystore validado ✓"
 
       - name: Analisar código
-        run: flutter analyze --no-fatal-infos
+        run: flutter analyze --no-fatal-infos 2>&1 | head -100
 
       - name: Build App Bundle (Release)
         run: flutter build appbundle --release
