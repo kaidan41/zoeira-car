@@ -102,24 +102,28 @@ jobs:
           path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
 
-      - name: Mapear track sugestivo para Play Console
-        run: |
-          if [ "${{ github.event.inputs.track }}" = "closed_testing" ]; then
-            echo "PLAY_TRACK=beta" >> $GITHUB_ENV
-          elif [ "${{ github.event.inputs.track }}" = "open_testing" ]; then
-            echo "PLAY_TRACK=alpha" >> $GITHUB_ENV
-          else
-            echo "PLAY_TRACK=${{ github.event.inputs.track }}" >> $GITHUB_ENV
-          fi
-        shell: bash
-
       - name: Publicar no Google Play (${{ github.event.inputs.track || 'internal' }})
-        uses: r0adkll/upload-google-play@v1.1.0
+        uses: r0adkll/upload-google-play@v2.2.0
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: com.zoeiracartv.app
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          track: ${{ env.PLAY_TRACK }}
-          status: completed
+          track: ${{ github.event.inputs.track }}
           whatsNewDirectory: distribution/whatsnew
+          status: completed
           inAppUpdatePriority: 5
+        continue-on-error: true
+
+      - name: Se upload falhou, lembrete prático com descrição do problema
+        if: failure()
+        run: |
+          echo "⚠️ O passo de publicação no Google Play falhou.
+          O AAB foi gerado e está disponível como artefato da action.
+          Os motivos mais comuns:
+          1) Track de teste não está preparado/ativado no Play Console
+          2) Conta de serviço sem permissão para criar/atualizar release
+          3) Play Console rejeitando por pré-condição de versão ou config
+
+          O próximo passo é verificar os logs desse passo e, se preciso,
+          fazer upload manual do artefato pelo Play Console ou rodar de novo
+          com mais logs de debug."
