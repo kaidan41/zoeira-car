@@ -105,11 +105,11 @@ jobs:
       - name: Mapear track sugestivo para Play Console
         run: |
           if [ "${{ github.event.inputs.track }}" = "closed_testing" ]; then
-            echo "PLAY_TRACK=beta" >> $GITHUB_ENV
+            echo "PLAY_TRACK=[\"beta\"]" >> $GITHUB_ENV
           elif [ "${{ github.event.inputs.track }}" = "open_testing" ]; then
-            echo "PLAY_TRACK=alpha" >> $GITHUB_ENV
+            echo "PLAY_TRACK=[\"alpha\"]" >> $GITHUB_ENV
           else
-            echo "PLAY_TRACK=${{ github.event.inputs.track }}" >> $GITHUB_ENV
+            echo "PLAY_TRACK=[\"${{ github.event.inputs.track }}\"]" >> $GITHUB_ENV
           fi
         shell: bash
 
