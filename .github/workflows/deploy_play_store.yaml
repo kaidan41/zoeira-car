@@ -102,16 +102,6 @@ jobs:
           path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
 
-      - name: Publicar no Google Play (${{ github.event.inputs.track || 'internal' }})
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
-          packageName: com.zoeiracartv.app
-          releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          track: ${{ env.PLAY_TRACK }}
-          status: completed
-          whatsNewDirectory: distribution/whatsnew
-      
       - name: Mapear track sugestivo para Play Console
         run: |
           if [ "${{ github.event.inputs.track }}" = "closed_testing" ]; then
@@ -122,3 +112,13 @@ jobs:
             echo "PLAY_TRACK=${{ github.event.inputs.track }}" >> $GITHUB_ENV
           fi
         shell: bash
+
+      - name: Publicar no Google Play (${{ github.event.inputs.track || 'internal' }})
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          packageName: com.zoeiracartv.app
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          track: ${{ env.PLAY_TRACK }}
+          status: completed
+          whatsNewDirectory: distribution/whatsnew
