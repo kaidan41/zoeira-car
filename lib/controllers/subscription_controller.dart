@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:zoeira_car/controllers/auth_controller.dart';
@@ -173,7 +175,7 @@ class SubscriptionController extends ChangeNotifier {
     // Pega o PurchaseParam correto dependendo da plataforma para desbloqueamento avulsa.
     try {
       final PurchaseParam purchaseParam = _consultaPurchaseParam(_consultaProduct!);
-      await _service.purchaseNonConsumable(purchaseParam);
+      await _service.purchaseSubscription(purchaseParam);
       return false; // resultado chega via _onPurchaseSuccess
     } catch (e) {
       _pendingUnlockVehicleId = null;
