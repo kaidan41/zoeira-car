@@ -1,0 +1,151 @@
+name: Deploy Play Store - Teste Fechado (Gerador AAB + Fallback Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Track de destino'
+        required: false
+        default: 'closed_testing'
+        type: choice
+        options:
+          - closed_testing
+          - internal
+          - open_testing
+          - production
+      attempt:
+        description: 'Tentativa de upload (1 ou 2)'
+        required: false
+        default: '1'
+        type: choice
+        options:
+          - '1'
+          - '2'
+
+jobs:
+  build-only:
+    name: Gerar AAB Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: 'stable'
+          cache: true
+
+      - name: Instalar dependências Flutter
+        run: flutter pub get
+
+      - name: Ajustar gradle.properties para ambiente Linux
+        run: |
+          sed -i '/org.gradle.java.home/d' android/gradle.properties || true
+
+      - name: Validar secret de assinatura
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          set -e
+          [ -n "$KEYSTORE_B64" ] || { echo "::error::Secret KEYSTORE_BASE64 ausente."; exit 1; }
+          [ -n "$STORE_PASS" ] || { echo "::error::Secret KEY_STORE_PASSWORD ausente."; exit 1; }
+          [ -n "$KEY_PASS" ] || { echo "::error::Secret KEY_PASSWORD ausente."; exit 1; }
+          [ -n "$KEY_ALIAS" ] || { echo "::error::Secret KEY_ALIAS ausente (esperado: zoeira_car)."; exit 1; }
+
+      - name: Decodificar Keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          echo "$KEYSTORE_B64" | tr -d '\r\n ' | base64 -d > android/app/upload-keystore.jks
+          ls -la android/app/upload-keystore.jks
+          cat > android/key.properties << EOF
+          storePassword=$STORE_PASS
+          keyPassword=$KEY_PASS
+          keyAlias=$KEY_ALIAS
+          storeFile=upload-keystore.jks
+          storeType=pkcs12
+          EOF
+          keytool -list -keystore android/app/upload-keystore.jks \
+            -storetype pkcs12 -storepass "$STORE_PASS" -alias "$KEY_ALIAS" -noprompt >/dev/null 2>&1 \
+            || { echo "::error::Keystore inválido ou alias errado."; exit 1; }
+          echo "Keystore validado ✓"
+
+      - name: Analisar código
+        run: flutter analyze --no-fatal-infos 2>&1 | head -100
+
+      - name: Build App Bundle (Release)
+        run: flutter build appbundle --release
+
+      - name: Upload AAB como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab-${{ github.run_id }}
+          path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+  publish-only:
+    name: Fazer upload no Play Store
+    needs: build-only
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event.inputs.attempt == '1'
+    steps:
+      - name: Baixar AAB gerado
+        uses: actions/download-artifact@v4
+        with:
+          name: app-release-aab-${{ needs.build-only.outputs.artifact_id || github.run_id }}
+          path: aab_out
+
+      - name: Publicar no Google Play
+        id: play_publish
+        uses: r0adkll/upload-google-play@v2.2.0
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          packageName: com.zoeiracartv.app
+          releaseFiles: aab_out/build/app/outputs/bundle/release/app-release.aab
+          track: ${{ github.event.inputs.track }}
+          status: completed
+          whatsNewDirectory: distribution/whatsnew
+          inAppUpdatePriority: 5
+        continue-on-error: true
+
+      - name: Se falhou, avisar e deixar artefato disponível
+        if: failure()
+        run: |
+          echo "::notice::O upload direto no Play falhou. Artefato ainda está disponível para upload manual."
+          echo "PASSO_A_SEGUIR=upload_manual" >> $GITHUB_ENV
+
+  publish-manual:
+    name: Fallback: instrução manual + artefato
+    needs: build-only
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event.inputs.attempt == '2'
+    steps:
+      - name: Baixar AAB gerado
+        uses: actions/download-artifact@v4
+        with:
+          name: app-release-aab-${{ github.run_id }}
+          path: aab_out
+
+      - name: Mostrar caminho do AAB para upload manual
+        run: |
+          echo "::notice::Tentativa 2: vou entregar o AAB para upload manual."
+          echo "Artefato pronto em: aab_out/build/app/outputs/bundle/release/app-release.aab"
+          find aab_out -type f
