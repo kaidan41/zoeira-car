@@ -137,7 +137,7 @@ class SubscriptionModel {
 
 /// Plano de assinatura disponível na Play Store
 class SubscriptionPlan {
-  static const String productId = 'zoeira_car_mensal';
+  static const String productId = 'zoeira_car_mensal_1';
   static const String displayName = 'Puxe agora a Capivara da Sua Nave';
   static const String price = 'R\$ 14,99/mês';
   static const String description =
