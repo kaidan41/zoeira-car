@@ -105,11 +105,11 @@ jobs:
       - name: Mapear track sugestivo para Play Console
         run: |
           if [ "${{ github.event.inputs.track }}" = "closed_testing" ]; then
-            echo "PLAY_TRACK=[\"beta\"]" >> $GITHUB_ENV
+            echo "PLAY_TRACK=beta" >> $GITHUB_ENV
           elif [ "${{ github.event.inputs.track }}" = "open_testing" ]; then
-            echo "PLAY_TRACK=[\"alpha\"]" >> $GITHUB_ENV
+            echo "PLAY_TRACK=alpha" >> $GITHUB_ENV
           else
-            echo "PLAY_TRACK=[\"${{ github.event.inputs.track }}\"]" >> $GITHUB_ENV
+            echo "PLAY_TRACK=${{ github.event.inputs.track }}" >> $GITHUB_ENV
           fi
         shell: bash
 
@@ -119,6 +119,6 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: com.zoeiracartv.app
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          tracks: ${{ env.PLAY_TRACK }}
+          track: ${{ env.PLAY_TRACK }}
           status: completed
           whatsNewDirectory: distribution/whatsnew
