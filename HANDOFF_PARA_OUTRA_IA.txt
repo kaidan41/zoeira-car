@@ -1,0 +1,121 @@
+═══════════════════════════════════════════════════════════════════════════════
+  HANDOFF PARA OUTRA IA - ZOEIRA CAR DEPLOY
+═══════════════════════════════════════════════════════════════════════════════
+
+RESUMO EXECUTIVO
+────────────────
+O app Zoeira Car está 90% pronto para deploy. Versão v1.0.5+13 com 2 produtos IAP:
+  • zoeira_car_mensal_1 (R$ 14,99/mês, 7-day trial)
+  • zoeira_consulta (R$ 7,90, one-time)
+
+GitHub Actions workflow está funcionando até o passo de upload, mas falha na 
+validação final com erro "Precondition check failed".
+
+O PROBLEMA ATUAL
+────────────────
+Status da Action #22 (última tentativa):
+  ✅ Build: Sucesso
+  ✅ Upload AAB: Sucesso
+  ❌ Validação: Falha com "Precondition check failed"
+
+Logs mostram:
+  - App bundle upado para beta track com sucesso
+  - Mas validação pós-upload falha
+  - r0adkll/upload-google-play@v1.1.0 reporta erro após sucesso
+
+ARQUIVOS CHAVE
+──────────────
+1. .github/workflows/deploy_play_store.yaml
+   → Workflow principal
+   → Step problem: "Publicar no Google Play" usa r0adkll/upload-google-play@v1.1.0
+   
+2. pubspec.yaml
+   → version: 1.0.5+13
+   
+3. lib/controllers/subscription_controller.dart
+   → IAP implementation com Platform check
+   → Métodos: unlockOne(), purchase(), restorePurchases()
+   
+4. lib/models/subscription_model.dart
+   → Product IDs: zoeira_car_mensal_1, zoeira_consulta
+   
+5. RELATORIO_KIRO.md
+   → Documentação completa do que foi feito
+
+RELATÓRIO TÉCNICO COMPLETO
+──────────────────────────
+Veja: RELATORIO_KIRO.md (258 linhas, toda documentação)
+
+RECOMENDAÇÕES IMEDIATAS
+───────────────────────
+1. Investigar o erro "Precondition check failed" especificamente:
+   - Pode ser Play Console configuração
+   - Pode ser bug da action (Node 24 incompatível)
+   - Pode ser release notes faltando (whatsNewDirectory)
+
+2. Alternativas para tentar:
+   a) Usar fastlane em vez de r0adkll/upload-google-play
+   b) Usar google-play-developer-api direto com Python/Node
+   c) Debugar com verbose logs da action
+
+3. Node.js 20 Deprecation:
+   - GitHub Actions rodando Node 24
+   - r0adkll action pode ter incompatibilidade
+   - Considerar fixar versão do Node ou trocar action
+
+GIT STATUS
+──────────
+✅ Repo completamente atualizado
+✅ Todos commits feitos e pushed
+✅ Nenhuma alteração local pendente
+
+Últimos commits:
+  d75d2a9 - docs: relatório completo de tudo realizado
+  308d74f - fix: usar upload-google-play v1.1.0 mais estável
+  ce69389 - fix: reverter para 'track' que funciona
+  628105c - bump: version 1.0.5+13 para closed_testing deploy
+  ...
+
+O QUE JÁ ESTÁ FEITO E FUNCIONANDO
+─────────────────────────────────
+✅ Nomes sugestivos de tracks (internal, closed_testing, open_testing, production)
+✅ Produtos IAP criados no Play Console
+✅ Código IAP corrigido (Platform import, PurchaseParam)
+✅ Versão incrementada (+13)
+✅ GitHub Actions workflow framework pronto
+✅ Scripts de deploy criados (deploy.ps1, dispatch_action.ps1)
+✅ Documentação criada (DEPLOY_GUIA.md)
+✅ App bundle builds com sucesso em Release mode
+✅ Arquivo AAB uploads para Play Console com sucesso
+
+O QUE ESTÁ FALHANDO
+───────────────────
+❌ Validação pós-upload na action (Precondition check failed)
+   → File uploaded, mas validation falha depois
+   → Provavelmente problema da action r0adkll/upload-google-play
+
+PRÓXIMAS AÇÕES SUGERIDAS
+────────────────────────
+1. Debugar especificamente qual precondition está falhando
+2. Considerar alternativa: fastlane (mais estável, melhor suportado)
+3. Se conseguir passar desta etapa, os testes precisam:
+   - Desinstalar debug APK do device
+   - Instalar v1.0.5+13 do Play Console
+   - Aguardar 2-4h para Play Console processar
+   - Testar compras
+
+NOTA IMPORTANTE
+───────────────
+O erro pode ser simples - às vezes Play Console nega por motivos triviais como:
+  • Falta de ícone na store listing
+  • Release notes incompletas
+  • App não revisado/ativo
+  • Conflito de versão anterior
+
+Verifique Play Console UI antes de gastar mais tempo com CI/CD.
+
+═══════════════════════════════════════════════════════════════════════════════
+Data: 05/09/2026
+Status: 90% Completo
+Repo: https://github.com/kaidan41/zoeira-car
+═══════════════════════════════════════════════════════════════════════════════
