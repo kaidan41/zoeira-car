@@ -2,7 +2,7 @@
 # Facilita o dispatch da GitHub Action para diferentes tracks
 
 param(
-    [ValidateSet('internal', 'alpha', 'beta', 'production')]
+    [ValidateSet('internal', 'closed_testing', 'open_testing', 'production')]
     [string]$Track = 'internal',
     [switch]$Help
 )
@@ -26,8 +26,11 @@ Exemplos:
   # Deploy pra teste interno (padrão)
   .\scripts\deploy.ps1
 
-  # Deploy pra beta/closed testing
-  .\scripts\deploy.ps1 -Track beta
+  # Deploy pra teste fechado
+  .\scripts\deploy.ps1 -Track closed_testing
+
+  # Deploy pra teste aberto
+  .\scripts\deploy.ps1 -Track open_testing
 
   # Deploy pra production
   .\scripts\deploy.ps1 -Track production

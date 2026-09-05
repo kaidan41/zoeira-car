@@ -31,16 +31,16 @@ git push origin v1.0.6
 
 ### **2. Deploy Manual via Workflow Dispatch (Qualquer Track)**
 
-Se vocês querem escolher a track (internal, alpha, beta, production), usem:
+Se vocês querem escolher a track, usem:
 
 **No GitHub:**
 1. Vá para: **Actions** → **Deploy Play Store (Teste Interno)**
 2. Clique em **"Run workflow"**
 3. Escolha a track:
-   - `internal` - Testadores internos (padrão)
-   - `alpha` - Alpha testing
-   - `beta` - Beta (Closed Testing)
-   - `production` - Production
+   - `internal` - Testadores internos
+   - `closed_testing` - Teste fechado (grupo controlado)
+   - `open_testing` - Teste aberto (público)
+   - `production` - Production (Google Play público)
 
 ✅ Dispara imediatamente!
 ⏱️ Tempo: ~5-10 minutos
@@ -61,8 +61,8 @@ Se vocês querem escolher a track (internal, alpha, beta, production), usem:
    ↓
 5. Aguardar ~5-10min (action rodando)
    ↓
-6. **Se quiser testar em outro track** (ex: beta/closed testing):
-   GitHub > Actions > Run workflow > Escolher "beta"
+6. **Se quiser testar em outro track** (ex: closed_testing):
+   GitHub > Actions > Run workflow > Escolher "closed_testing"
    ↓
 7. Quando pronto pra production:
    GitHub > Actions > Run workflow > Escolher "production"
@@ -75,8 +75,8 @@ Se vocês querem escolher a track (internal, alpha, beta, production), usem:
 | Track | Destino | Tempo | Uso |
 |-------|---------|-------|-----|
 | `internal` | Testadores internos | ~2-4h | Testes rápidos |
-| `alpha` | Alpha testing | ~2-4h | Testes mais amplos |
-| `beta` | Closed Testing (Beta) | ~2-4h | Testes com grupo maior |
+| `closed_testing` | Teste fechado (beta) | ~2-4h | Testes com grupo controlado |
+| `open_testing` | Teste aberto | ~2-4h | Testes públicos |
 | `production` | Google Play Público | ~24h | Lançamento final |
 
 ---
