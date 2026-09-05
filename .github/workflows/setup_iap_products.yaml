@@ -1,0 +1,57 @@
+name: Setup IAP Products
+
+on:
+  workflow_dispatch:
+    inputs:
+      create_subscription:
+        description: 'Criar produto de assinatura (zoeira_car_mensal)'
+        required: false
+        type: boolean
+        default: true
+      create_consultation:
+        description: 'Criar produto de consulta avulsa (zoeira_consulta)'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  setup-iap:
+    name: Create In-App Purchase Products
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install google-auth-oauthlib google-auth-httplib2 google-api-python-client
+
+      - name: Create IAP Products
+        env:
+          PLAY_STORE_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          PACKAGE_NAME: 'com.zoeiracartv.app'
+          CREATE_SUBSCRIPTION: ${{ github.event.inputs.create_subscription }}
+          CREATE_CONSULTATION: ${{ github.event.inputs.create_consultation }}
+        run: |
+          python3 scripts/create_iap_products.py
+
+      - name: Verify Products
+        env:
+          PLAY_STORE_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          PACKAGE_NAME: 'com.zoeiracartv.app'
+        run: |
+          python3 scripts/verify_iap_products.py
+
+      - name: Post Result
+        if: success()
+        run: |
+          echo "✅ Produtos IAP criados com sucesso!"
+          echo "Aguarde 2-4 horas para os produtos ficarem disponíveis para teste."

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:zoeira_car/controllers/auth_controller.dart';
 import 'package:zoeira_car/models/subscription_model.dart';
 import 'package:zoeira_car/models/user_access_model.dart';
@@ -124,6 +125,8 @@ class SubscriptionController extends ChangeNotifier {
 
   /// Desbloqueia 1 veículo por R$ 7,90: usa um crédito existente ou
   /// inicia a compra da consulta avulsa na Play Store.
+  /// Desbloqueia 1 veículo por R$ 7,90: usa um crédito existente ou
+  /// inicia a compra da consulta avulsa na Play Store.
   Future<bool> unlockOne(String vehicleId) async {
     if (_auth == null || !_auth!.isLoggedIn) {
       _setError('Faça login para desbloquear a nave 🚗');
@@ -167,8 +170,10 @@ class SubscriptionController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    // Pega o PurchaseParam correto dependendo da plataforma para desbloqueamento avulsa.
     try {
-      await _service.purchaseSubscription(_consultaProduct!);
+      final PurchaseParam purchaseParam = _consultaPurchaseParam(_consultaProduct!);
+      await _service.purchaseNonConsumable(purchaseParam);
       return false; // resultado chega via _onPurchaseSuccess
     } catch (e) {
       _pendingUnlockVehicleId = null;
@@ -178,6 +183,17 @@ class SubscriptionController extends ChangeNotifier {
     }
   }
 
+  PurchaseParam _consultaPurchaseParam(ProductDetails product) {
+    if (Platform.isAndroid) {
+      return GooglePlayPurchaseParam(
+        productDetails: product,
+        changeSubscriptionParam: null,
+      );
+    }
+    return PurchaseParam(productDetails: product);
+  }
+
+  /// Compra o plano de assinatura mensal
   /// Compra o plano de assinatura mensal
   Future<void> purchase() async {
     if (_auth == null || !_auth!.isLoggedIn) {
@@ -201,11 +217,22 @@ class SubscriptionController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _service.purchaseSubscription(_product!);
+      final PurchaseParam purchaseParam = _subscriptionPurchaseParam(_product!);
+      await _service.purchaseSubscription(purchaseParam);
       // O resultado chega via _onPurchaseSuccess / _onPurchaseError
     } catch (e) {
       _setError(_friendlyError(e));
     }
+  }
+
+  PurchaseParam _subscriptionPurchaseParam(ProductDetails product) {
+    if (Platform.isAndroid) {
+      return GooglePlayPurchaseParam(
+        productDetails: product,
+        changeSubscriptionParam: null,
+      );
+    }
+    return PurchaseParam(productDetails: product);
   }
 
   // ─────────────────────────────────────────────

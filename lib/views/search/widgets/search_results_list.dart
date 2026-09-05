@@ -85,6 +85,11 @@ class _VehicleResultCard extends StatelessWidget {
                           ? Image.asset(
                               vehicle.thumbnailUrl,
                               fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  VehicleIllustration(
+                                brand: vehicle.brand,
+                                bodyType: vehicle.bodyType,
+                              ),
                             )
                           : Image.network(
                               vehicle.thumbnailUrl,

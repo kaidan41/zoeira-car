@@ -213,6 +213,19 @@ const BODY_TYPES = {
   'geely|ex5': 'suv',
   'seres|3': 'suv',
   'caoa changan|cs35': 'suv',
+  // ── Novos (set/2026)
+  'jeep|commander': 'suv',
+  'hyundai|hb20x': 'suv',
+  'chevrolet|cobalt': 'sedan',
+  'ram|1500': 'pickup',
+  'gwm|tank 300': 'suv',
+  'toyota|yaris cross': 'suv',
+  'peugeot|408': 'sedan',
+  'citroen|basalt': 'suv',
+  'bmw|x1': 'suv',
+  'audi|q3': 'suv',
+  'volvo|xc40': 'suv',
+  'mitsubishi|asx': 'suv',
 };
 
 function normalizeKey(s) {

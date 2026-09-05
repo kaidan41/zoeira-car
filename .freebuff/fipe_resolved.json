@@ -1,0 +1,37 @@
+[
+  {
+    "nome": "VW Gol Quadrado",
+    "modelo": "Gol (novo) 1.6 Mi Total Flex 8V 2p",
+    "ano": "2013 Flex",
+    "codigoFipe": "005346-5",
+    "valor": "R$ 35.007,00"
+  },
+  {
+    "nome": "Fiat Marea Turbo",
+    "modelo": "Marea Turbo 2.0 20V 4p",
+    "ano": "2003 Gasolina",
+    "codigoFipe": "001083-9",
+    "valor": "R$ 38.606,00"
+  },
+  {
+    "nome": "Honda Civic 1.5 Turbo",
+    "modelo": "Civic Sedan TOURING 1.5 Turbo 16V Aut.4p",
+    "ano": "2020 Gasolina",
+    "codigoFipe": "014089-9",
+    "valor": "R$ 137.164,00"
+  },
+  {
+    "nome": "Chevrolet Onix 1.0 TB",
+    "modelo": "ONIX HATCH 1.0 12V TB 5p Mec.",
+    "ano": "2026 Flex",
+    "codigoFipe": "004559-4",
+    "valor": "R$ 86.185,00"
+  },
+  {
+    "nome": "Toyota Corolla XEi 2.0",
+    "modelo": "Corolla XEi 2.0 Flex 16V Aut.",
+    "ano": "2020 Flex",
+    "codigoFipe": "002111-3",
+    "valor": "R$ 114.373,00"
+  }
+]

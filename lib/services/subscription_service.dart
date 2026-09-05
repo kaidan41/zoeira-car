@@ -216,19 +216,8 @@ class SubscriptionService {
     return response.productDetails.first;
   }
 
-  /// Inicia o fluxo de compra da assinatura
-  Future<void> purchaseSubscription(ProductDetails product) async {
-    final PurchaseParam purchaseParam;
-
-    if (Platform.isAndroid) {
-      purchaseParam = GooglePlayPurchaseParam(
-        productDetails: product,
-        changeSubscriptionParam: null,
-      );
-    } else {
-      purchaseParam = PurchaseParam(productDetails: product);
-    }
-
+  /// Inicia o fluxo de compra da assinatura (ou consulta avulsa)
+  Future<void> purchaseSubscription(PurchaseParam purchaseParam) async {
     await _iap.buyNonConsumable(purchaseParam: purchaseParam);
   }
 
